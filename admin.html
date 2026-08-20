@@ -29,7 +29,7 @@
         .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #f3f4f6; flex-wrap: wrap; gap: 10px; }
         .card-title { font-size: 1.1rem; font-weight: 600; }
         
-        .filter-box { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .filter-box { display: flex; gap: 10px; align-items: center; }
         .filter-box input[type="date"] { padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; }
 
         .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
@@ -286,7 +286,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
-    <script[span_6](start_span)[span_6](end_span)>
+    <script>
         const firebaseConfig = {
             apiKey: "AIzaSyD33b4xNlyRTxgJsbd2HEfP0j-o3fh3y8Y",
             authDomain: "social-hub-eed7d.firebaseapp.com",
@@ -521,7 +521,6 @@
             }
         }
 
-        // সব টাস্ক একবারে ক্লিয়ার করার ফাংশন
         function clearAllTasks(type) {
             let tasks = allGlobalTasks[type] || [];
             if(tasks.length === 0) {
@@ -615,7 +614,6 @@
             }
         }
 
-        // সব উইথড্র হিস্ট্রি একসাথে ডিলিট করার ফাংশন
         function clearAllWithdrawHistory() {
             if(confirm("আপনি কি নিশ্চিতভাবে সমস্ত উইথড্র হিস্ট্রি একবারে ডিলিট করতে চান?")) {
                 Promise.all([
@@ -676,7 +674,7 @@
                 const container = document.getElementById('payment-methods-container');
                 container.innerHTML = '';
                 if(c.paymentMethods && Array.isArray(c.paymentMethods) && c.paymentMethods.length > 0) {
-                    c.paymentMethods.forEach(m => addMethodRow(m.name, m.minAmount));
+                    c.paymentMethods.length && c.paymentMethods.forEach(m => addMethodRow(m.name, m.minAmount));
                 }
             });
         }
@@ -685,7 +683,7 @@
             const methodRows = document.querySelectorAll('.method-row');
             let methods = [];
             methodRows.forEach(row => {
-                let name = row.querySelector('.m-name').value;
+                let name = row.querySelector('.m-name`' ? row.querySelector('.m-name').value : '').value || '';
                 let minAmount = parseFloat(row.querySelector('.m-amt').value) || 0;
                 if(name) methods.push({ name, minAmount });
             });
@@ -697,9 +695,9 @@
                 minWithdrawReferrals: parseInt(document.getElementById('min-ref').value) || 0, 
                 newAccPrice: parseFloat(document.getElementById('new-acc-price').value) || 10,
                 oldAccPrice: parseFloat(document.getElementById('old-acc-price').value) || 25,
-                usedAccPrice: parseFloat(document.getElementById('old-acc-price') ? document.getElementById('used-acc-price').value : 15),
+                usedAccPrice: parseFloat(document.getElementById('used-acc-price').value) || 15,
                 dailyTaskLimit: parseInt(document.getElementById('daily-limit').value) || 10,
-                whatsapplink: document.getElementById('whatsapp-link').value,
+                whatsappLink: document.getElementById('whatsapp-link').value,
                 telegramLink: document.getElementById('telegram-link').value,
                 popupAnnouncement: document.getElementById('popup-announcement').value,
                 paymentMethods: methods.length > 0 ? methods : null 
