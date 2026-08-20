@@ -368,8 +368,8 @@
             const amt = prompt("Enter amount to add/subtract (+/-):");
             if(amt) db.ref(`users/${uid}/balance`).set(firebase.database.ServerValue.increment(parseFloat(amt)));
         }
-        function toggleBan(uid, status) { if(confirm(status?"Ban user?":"Unban user?")) db.ref(`users/${uid}/isBanned`).set(status); }
-        function deleteUser(uid) { if(confirm("Delete user permanently?")) db.ref(`users/${uid}`).remove(); }
+        function toggleBan(uid, status) { db.ref(`users/${uid}/isBanned`).set(status); }
+        function deleteUser(uid) { db.ref(`users/${uid}`).remove(); }
 
         function loadAdminTasks() {
             db.ref('tasks').on('value', snapshot => {
@@ -458,10 +458,7 @@
                 });
             }
 
-            if(tasks.length === 0) {
-                alert('ডাউনলোড করার মতো কোনো এপ্রুভড ডাটা পাওয়া যায়নি!');
-                return;
-            }
+            if(tasks.length === 0) return;
 
             let csvContent = "data:text/csv;charset=utf-8,User ID,Account Type,Detail,Password,Status,Date\r\n";
             tasks.forEach(t => {
@@ -519,17 +516,10 @@
 
         function clearAllTasks(type) {
             let tasks = allGlobalTasks[type] || [];
-            if(tasks.length === 0) {
-                alert("ডিলিট করার মতো কোনো টাস্ক নেই!");
-                return;
-            }
+            if(tasks.length === 0) return;
 
-            if(confirm(`আপনি কি নিশ্চিতভাবে সব ${type.toUpperCase()} টাস্ক একবারে ডিলিট করতে চান?`)) {
-                let promises = tasks.map(t => db.ref(`tasks/${t.userId}/${t.taskId}`).remove());
-                Promise.all(promises)
-                    .then(() => alert("সব টাস্ক সফলভাবে মুছে ফেলা হয়েছে!"))
-                    .catch(err => alert("ত্রুটি: " + err.message));
-            }
+            let promises = tasks.map(t => db.ref(`tasks/${t.userId}/${t.taskId}`).remove());
+            Promise.all(promises).catch(err => console.error(err));
         }
 
         async function reviewTask(userId, taskId, newStatus, rewardAmount) {
@@ -552,7 +542,6 @@
                     rejectedTasksCount: firebase.database.ServerValue.increment(1)
                 });
             }
-            alert(`Task has been ${newStatus} successfully!`);
         }
 
         function loadWithdraws() {
@@ -599,14 +588,10 @@
         }
 
         function clearAllWithdrawHistory() {
-            if(confirm("আপনি কি নিশ্চিতভাবে সমস্ত উইথড্র হিস্ট্রি একবারে ডিলিট করতে চান?")) {
-                Promise.all([
-                    db.ref('withdrawals/completed').remove(),
-                    db.ref('withdrawals/rejected').remove()
-                ])
-                .then(() => alert("সকল উইথড্র হিস্ট্রি সফলভাবে মুছে ফেলা হয়েছে!"))
-                .catch(err => alert("ত্রুটি: " + err.message));
-            }
+            Promise.all([
+                db.ref('withdrawals/completed').remove(),
+                db.ref('withdrawals/rejected').remove()
+            ]).catch(err => console.error(err));
         }
 
         async function pay(k, ok) {
@@ -687,7 +672,7 @@
                 popupAnnouncement: document.getElementById('popup-announcement').value,
                 enableRefer: document.getElementById('refer-toggle').checked,
                 paymentMethods: methods.length > 0 ? methods : null 
-            }).then(()=>alert("Settings & Configurations Saved Successfully!"));
+            });
         }
     </script>
 </body>
