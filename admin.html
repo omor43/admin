@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Premium Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root { --primary: #6366f1; --bg: #f3f4f6; --surface: #ffffff; --text: #111827; --text-light: #6b7280; --danger: #ef4444; --success: #10b981; --warning: #f59e0b; }
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter', sans-serif; }
+        body { background-color: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+        
+        .sidebar { width: 260px; background: var(--surface); height: 100vh; position: fixed; left: 0; top: 0; border-right: 1px solid #e5e7eb; z-index: 1000; transition: transform 0.3s ease; }
+        .brand { padding: 20px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 10px; font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+        .menu { padding: 15px 0; }
+        .menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 25px; color: var(--text-light); text-decoration: none; font-weight: 500; cursor: pointer; transition: 0.2s; }
+        .menu-item:hover, .menu-item.active { background: #eef2ff; color: var(--primary); border-right: 3px solid var(--primary); }
+        
+        .main-content { margin-left: 260px; width: calc(100% - 260px); padding: 30px; transition: all 0.3s ease; }
+        .mob-header { display: none; justify-content: space-between; align-items: center; background: var(--surface); padding: 15px 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        
+        .page { display: none; animation: fadeIn 0.3s; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .card { background: var(--surface); padding: 25px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 25px; }
+        .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #f3f4f6; flex-wrap: wrap; gap: 10px; }
+        .card-title { font-size: 1.1rem; font-weight: 600; }
+        
+        .filter-box { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .filter-box input[type="date"] { padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; }
+
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-item { background: var(--surface); padding: 25px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-item h3 { font-size: 0.9rem; color: var(--text-light); text-transform: uppercase; margin-bottom: 5px; }
+        .stat-item h1 { font-size: 2rem; font-weight: 700; color: var(--text); }
+        
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 850px; }
+        th { text-align: left; padding: 15px; background: #f9fafb; color: var(--text-light); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
+        td { padding: 15px; border-bottom: 1px solid #f3f4f6; font-size: 0.95rem; vertical-align: middle; }
+        .user-cell { display: flex; align-items: center; gap: 10px; }
+        
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.9rem; color: var(--text-light); }
+        input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; outline: none; transition: 0.2s; background: #fff; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+        
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; transition: 0.2s; font-size: 0.9rem; color: white; }
+        .btn-p { background: var(--primary); } .btn-s { background: var(--success); } .btn-d { background: var(--danger); } .btn-w { background: var(--warning); }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; margin-right: 5px; }
+        
+        .method-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 900; display: none; }
+        
+        @media (max-width: 768px) { 
+            .sidebar { transform: translateX(-100%); } 
+            .sidebar.show { transform: translateX(0); } 
+            .main-content { margin-left: 0; width: 100%; padding: 15px; } 
+            .mob-header { display: flex; } 
+            .overlay.show { display: block; } 
+            .form-row { grid-template-columns: 1fr; } 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="overlay" onclick="toggleMenu()"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="brand"><i class="fas fa-shield-alt"></i> Admin Pro</div>
+        <div class="menu">
+            <div class="menu-item active" onclick="nav('dashboard', this)"><i class="fas fa-home"></i> Dashboard</div>
+            <div class="menu-item" onclick="nav('users', this)"><i class="fas fa-users"></i> Users</div>
+            <div class="menu-item" onclick="nav('gmail-tasks', this)"><i class="fab fa-google" style="color: #ea4335;"></i> Gmail Account</div>
+            <div class="menu-item" onclick="nav('fb-tasks', this)"><i class="fab fa-facebook" style="color: #1877f2;"></i> Facebook Account</div>
+            <div class="menu-item" onclick="nav('insta-tasks', this)"><i class="fab fa-instagram" style="color: #e1306c;"></i> Instagram Account</div>
+            <div class="menu-item" onclick="nav('withdraw', this)"><i class="fas fa-wallet"></i> Withdrawals</div>
+            <div class="menu-item" onclick="nav('settings', this)"><i class="fas fa-cog"></i> Settings</div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="mob-header">
+            <h3>Admin Panel</h3>
+            <i class="fas fa-bars" style="font-size: 1.5rem; cursor: pointer;" onclick="toggleMenu()"></i>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div id="dashboard" class="page active">
+            <div class="stats">
+                <div class="stat-item"><h3>Total Users</h3><h1 id="stat-users">0</h1></div>
+                <div class="stat-item"><h3>Pending Requests</h3><h1 id="stat-pending" style="color:var(--warning)">0</h1></div>
+                <div class="stat-item"><h3>Total Paid</h3><h1 id="stat-paid" style="color:var(--success)">0</h1></div>
+            </div>
+        </div>
+
+        <!-- USERS -->
+        <div id="users" class="page">
+            <div class="card">
+                <div class="card-head"><span class="card-title">User List</span><input type="text" id="search-box" placeholder="Search..." style="width: 200px;" onkeyup="filterUsers()"></div>
+                <div class="table-container">
+                    <table id="user-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Balance</th>
+                                <th>Referrals</th>
+                                <th>Approved</th>
+                                <th>Pending</th>
+                                <th>Rejected</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody><tr><td colspan="8" style="text-align:center;">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- GMAIL TASKS -->
+        <div id="gmail-tasks" class="page">
+            <div class="card">
+                <div class="card-head">
+                    <span class="card-title">Gmail Account Submissions</span>
+                    <div class="filter-box">
+                        <input type="date" id="gmail-date" onchange="filterAndRenderTasks('gmail')">
+                        <button class="btn btn-sm btn-p" onclick="clearDateFilter('gmail')">Reset</button>
+                        <button class="btn btn-sm btn-s" onclick="exportTasksCSV('gmail')"><i class="fas fa-file-excel"></i> Download Excel</button>
+                        <button class="btn btn-sm btn-d" onclick="clearAllTasks('gmail')"><i class="fas fa-trash"></i> Clear All</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="gmail-task-table">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Account Type</th>
+                                <th>Gmail Address</th>
+                                <th>Password</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody><tr><td colspan="6" style="text-align:center;">Loading Gmail Tasks...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- FACEBOOK TASKS -->
+        <div id="fb-tasks" class="page">
+            <div class="card">
+                <div class="card-head">
+                    <span class="card-title">Facebook Account Submissions</span>
+                    <div class="filter-box">
+                        <input type="date" id="fb-date" onchange="filterAndRenderTasks('facebook')">
+                        <button class="btn btn-sm btn-p" onclick="clearDateFilter('facebook')">Reset</button>
+                        <button class="btn btn-sm btn-s" onclick="exportTasksCSV('facebook')"><i class="fas fa-file-excel"></i> Download Excel</button>
+                        <button class="btn btn-sm btn-d" onclick="clearAllTasks('facebook')"><i class="fas fa-trash"></i> Clear All</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="fb-task-table">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Account Type</th>
+                                <th>Account Detail</th>
+                                <th>Password</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody><tr><td colspan="6" style="text-align:center;">Loading Facebook Tasks...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- INSTAGRAM TASKS -->
+        <div id="insta-tasks" class="page">
+            <div class="card">
+                <div class="card-head">
+                    <span class="card-title">Instagram Account Submissions</span>
+                    <div class="filter-box">
+                        <input type="date" id="insta-date" onchange="filterAndRenderTasks('instagram')">
+                        <button class="btn btn-sm btn-p" onclick="clearDateFilter('instagram')">Reset</button>
+                        <button class="btn btn-sm btn-s" onclick="exportTasksCSV('instagram')"><i class="fas fa-file-excel"></i> Download Excel</button>
+                        <button class="btn btn-sm btn-d" onclick="clearAllTasks('instagram')"><i class="fas fa-trash"></i> Clear All</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="insta-task-table">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Account Type</th>
+                                <th>Account Detail</th>
+                                <th>Password</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody><tr><td colspan="6" style="text-align:center;">Loading Instagram Tasks...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- WITHDRAWALS -->
+        <div id="withdraw" class="page">
+            <div class="card">
+                <div class="card-head"><span class="card-title">Pending Requests</span></div>
+                <div class="table-container"><table id="pending-table"><thead><tr><th>User</th><th>Details</th><th>Amount</th><th>Actions</th></tr></thead><tbody></tbody></table></div>
+            </div>
+
+            <div class="card">
+                <div class="card-head">
+                    <span class="card-title">Withdrawals History (Approved / Rejected)</span>
+                    <button class="btn btn-sm btn-d" onclick="clearAllWithdrawHistory()"><i class="fas fa-trash"></i> Clear All</button>
+                </div>
+                <div class="table-container">
+                    <table id="history-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Method & Account</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody><tr><td colspan="5" style="text-align:center;">No History Found</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div id="settings" class="page">
+            <div class="card">
+                <div class="card-head"><span class="card-title">General Settings, Prices & Supports</span></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Currency Symbol</label><input id="curr-sym"></div>
+                    <div class="form-group"><label>Bot Username</label><input id="bot-user"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Referral Bonus</label><input type="number" id="ref-bonus"></div>
+                    <div class="form-group"><label>Min Refs to Withdraw</label><input type="number" id="min-ref"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>নতুন অ্যাকাউন্ট দাম (TK)</label><input type="number" id="new-acc-price"></div>
+                    <div class="form-group"><label>পুরাতন অ্যাকাউন্ট দাম (TK)</label><input type="number" id="old-acc-price"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>ব্যবহৃত অ্যাকাউন্ট দাম (TK)</label><input type="number" id="used-acc-price"></div>
+                    <div class="form-group"><label>দৈনিক কাজের লিমিট (Daily Task Limit)</label><input type="number" id="daily-limit"></div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group"><label>WhatsApp Support Link</label><input id="whatsapp-link"></div>
+                    <div class="form-group"><label>Telegram Support Link</label><input id="telegram-link"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Popup Announcement for Users (Leave blank to disable)</label>
+                    <textarea id="popup-announcement" rows="3" placeholder="জরুরী নোটিশ এখানে লিখুন..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label><strong>Payment Methods & Minimum Amount</strong></label>
+                    <div id="payment-methods-container"></div>
+                    <button type="button" class="btn btn-w" style="margin-top: 10px;" onclick="addMethodRow('', '')">+ Add Method</button>
+                </div>
+
+                <div style="margin-top:30px;"><button class="btn btn-p" onclick="saveSettings()">Save All Changes</button></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <script[span_6](start_span)[span_6](end_span)>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD33b4xNlyRTxgJsbd2HEfP0j-o3fh3y8Y",
+            authDomain: "social-hub-eed7d.firebaseapp.com",
+            databaseURL: "https://social-hub-eed7d-default-rtdb.firebaseio.com",
+            projectId: "social-hub-eed7d",
+            storageBucket: "social-hub-eed7d.firebasestorage.app",
+            messagingSenderId: "802921482828",
+            appId: "1:802921482828:web:5737432ab04c99739c82e9"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        let userList = [];
+        let allGlobalTasks = { gmail: [], facebook: [], instagram: [] };
+
+        window.onload = () => { loadStats(); loadUsers(); loadAdminTasks(); loadWithdraws(); loadSettings(); };
+
+        function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.querySelector('.overlay').classList.toggle('show');
+        }
+
+        function nav(pageId, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            if(window.innerWidth <= 768) {
+                toggleMenu();
+            }
+        }
+
+        function loadStats() {
+            db.ref('withdrawals/pending').on('value', s => document.getElementById('stat-pending').innerText = s.numChildren());
+            db.ref('withdrawals/completed').on('value', s => document.getElementById('stat-paid').innerText = s.numChildren());
+        }
+
+        function loadUsers() {
+            db.ref('users').on('value', snap => {
+                const tbody = document.querySelector('#user-table tbody'); tbody.innerHTML = '';
+                userList = [];
+                if(snap.exists()) {
+                    snap.forEach(child => { userList.push({ id: child.key, ...child.val() }); });
+                }
+                document.getElementById('stat-users').innerText = userList.length;
+                renderUsers(userList);
+            });
+        }
+        function renderUsers(list) {
+            const tbody = document.querySelector('#user-table tbody'); tbody.innerHTML = '';
+            if(list.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">No users found</td></tr>'; return; }
+            list.forEach(u => {
+                const status = u.isBanned ? '<span style="color:var(--danger); font-weight:700;">Banned</span>' : '<span style="color:var(--success);">Active</span>';
+                const banBtn = u.isBanned ? `<button class="btn btn-sm btn-s" onclick="toggleBan('${u.id}', false)">Unban</button>` : `<button class="btn btn-sm btn-w" onclick="toggleBan('${u.id}', true)">Ban</button>`;
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td><div class="user-cell"><div><div style="font-weight:600;">${u.firstName || 'User'}</div><div style="font-size:0.8rem; color:#6b7280;">ID: ${u.id}</div></div></div></td>
+                        <td style="font-weight:600;">${(u.balance||0)} TK</td>
+                        <td>${u.referrals||0}</td>
+                        <td style="color:var(--success); font-weight:600;">${u.approvedTasksCount || 0}</td>
+                        <td style="color:var(--warning); font-weight:600;">${u.pendingTasksCount || 0}</td>
+                        <td style="color:var(--danger); font-weight:600;">${u.rejectedTasksCount || 0}</td>
+                        <td>${status}</td>
+                        <td><button class="btn btn-sm btn-p" onclick="editBal('${u.id}')"><i class="fas fa-coins"></i></button>${banBtn}<button class="btn btn-sm btn-d" onclick="deleteUser('${u.id}')"><i class="fas fa-trash"></i></button></td>
+                    </tr>`;
+            });
+        }
+        function filterUsers() {
+            const term = document.getElementById('search-box').value.toLowerCase();
+            renderUsers(userList.filter(u => (u.firstName && u.firstName.toLowerCase().includes(term)) || (u.id && u.id.toString().includes(term))));
+        }
+        function editBal(uid) {
+            const amt = prompt("Enter amount to add/subtract (+/-):");
+            if(amt) db.ref(`users/${uid}/balance`).set(firebase.database.ServerValue.increment(parseFloat(amt)));
+        }
+        function toggleBan(uid, status) { if(confirm(status?"Ban user?":"Unban user?")) db.ref(`users/${uid}/isBanned`).set(status); }
+        function deleteUser(uid) { if(confirm("Delete user permanently?")) db.ref(`users/${uid}`).remove(); }
+
+        function loadAdminTasks() {
+            db.ref('tasks').on('value', snapshot => {
+                allGlobalTasks = { gmail: [], facebook: [], instagram: [] };
+
+                if(snapshot.exists()) {
+                    snapshot.forEach(userSnap => {
+                        const userId = userSnap.key;
+                        userSnap.forEach(taskSnap => {
+                            const taskId = taskSnap.key;
+                            const t = taskSnap.val();
+                            
+                            if(t) {
+                                const taskObj = { userId, taskId, ...t };
+                                const titleLower = (t.title || '').toLowerCase();
+
+                                if(titleLower.includes('gmail')) {
+                                    allGlobalTasks.gmail.push(taskObj);
+                                } else if(titleLower.includes('facebook') || titleLower.includes('fb')) {
+                                    allGlobalTasks.facebook.push(taskObj);
+                                } else if(titleLower.includes('instagram') || titleLower.includes('insta')) {
+                                    allGlobalTasks.instagram.push(taskObj);
+                                } else {
+                                    allGlobalTasks.instagram.push(taskObj);
+                                }
+                            }
+                        });
+                    });
+                }
+
+                const sortTasks = (a, b) => {
+                    if (a.status === 'pending' && b.status !== 'pending') return -1;
+                    if (a.status !== 'pending' && b.status === 'pending') return 1;
+                    return (b.timestamp || 0) - (a.timestamp || 0);
+                };
+
+                allGlobalTasks.gmail.sort(sortTasks);
+                allGlobalTasks.facebook.sort(sortTasks);
+                allGlobalTasks.instagram.sort(sortTasks);
+
+                filterAndRenderTasks('gmail');
+                filterAndRenderTasks('facebook');
+                filterAndRenderTasks('instagram');
+            });
+        }
+
+        function filterAndRenderTasks(type) {
+            let tasks = allGlobalTasks[type] || [];
+            let dateInputId = type === 'gmail' ? 'gmail-date' : (type === 'facebook' ? 'fb-date' : 'insta-date');
+            let tableId = type === 'gmail' ? '#gmail-task-table tbody' : (type === 'facebook' ? '#fb-task-table tbody' : '#insta-task-table tbody');
+            let dateInput = document.getElementById(dateInputId);
+            let selectedDate = dateInput ? dateInput.value : '';
+
+            if(selectedDate) {
+                tasks = tasks.filter(t => {
+                    if(!t.timestamp) return false;
+                    let taskDateStr = new Date(t.timestamp).toISOString().split('T')[0];
+                    return taskDateStr === selectedDate;
+                });
+            }
+
+            const tbody = document.querySelector(tableId);
+            if(tbody) {
+                renderTaskList(tasks, tbody, `No ${type.charAt(0).toUpperCase() + type.slice(1)} Tasks Found`);
+            }
+        }
+
+        function clearDateFilter(type) {
+            let dateInputId = type === 'gmail' ? 'gmail-date' : (type === 'facebook' ? 'fb-date' : 'insta-date');
+            document.getElementById(dateInputId).value = '';
+            filterAndRenderTasks(type);
+        }
+
+        function exportTasksCSV(type) {
+            let tasks = allGlobalTasks[type] || [];
+            let dateInputId = type === 'gmail' ? 'gmail-date' : (type === 'facebook' ? 'fb-date' : 'insta-date');
+            let selectedDate = document.getElementById(dateInputId).value;
+
+            tasks = tasks.filter(t => t.status === 'approved');
+
+            if(selectedDate) {
+                tasks = tasks.filter(t => {
+                    if(!t.timestamp) return false;
+                    let taskDateStr = new Date(t.timestamp).toISOString().split('T')[0];
+                    return taskDateStr === selectedDate;
+                });
+            }
+
+            if(tasks.length === 0) {
+                alert('ডাউনলোড করার মতো কোনো এপ্রুভড ডাটা পাওয়া যায়নি!');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,User ID,Account Type,Detail,Password,Status,Date\r\n";
+            tasks.forEach(t => {
+                let dateStr = t.timestamp ? new Date(t.timestamp).toLocaleString() : 'N/A';
+                let row = `"${t.userId}","${t.accountType || ''}","${t.detail || ''}","${t.password || ''}","${t.status}","${dateStr}"`;
+                csvContent += row + "\r\n";
+            });
+
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `${type}_approved_tasks_${selectedDate || 'all'}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function renderTaskList(tasks, tbody, emptyText) {
+            tbody.innerHTML = '';
+            if(tasks.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">${emptyText}</td></tr>`;
+                return;
+            }
+
+            tasks.forEach(t => {
+                let detailText = t.detail || '';
+                let passText = t.password || 'N/A';
+                let accType = t.accountType || 'নতুন অ্যাকাউন্ট';
+                let rewardVal = t.rewardAmount || 10;
+
+                let actionHTML = '';
+                if (t.status === 'pending') {
+                    actionHTML = `
+                        <button class="btn btn-sm btn-s" onclick="reviewTask('${t.userId}', '${t.taskId}', 'approved', ${rewardVal})"><i class="fas fa-check"></i> Approve</button>
+                        <button class="btn btn-sm btn-d" onclick="reviewTask('${t.userId}', '${t.taskId}', 'rejected', 0)"><i class="fas fa-times"></i> Reject</button>
+                    `;
+                } else {
+                    actionHTML = `<span style="color:var(--text-light); font-style:italic;">No Action</span>`;
+                }
+
+                actionHTML += ` <button class="btn btn-sm btn-d" onclick="deleteTask('${t.userId}', '${t.taskId}')" title="Delete Task"><i class="fas fa-trash"></i></button>`;
+
+                let badgeColor = accType.includes('পুরাতন') ? 'var(--warning)' : (accType.includes('ব্যবহৃত') ? 'var(--primary)' : 'var(--success)');
+                let typeBadge = `<span style="color: ${badgeColor}; font-weight:600; background: #f3f4f6; padding: 4px 8px; border-radius: 6px; font-size: 0.85rem;">${accType}</span>`;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><small>${t.userId}</small></td>
+                        <td>${typeBadge}</td>
+                        <td><b>${detailText}</b></td>
+                        <td><span style="background:#eef2ff; color:var(--primary); padding:3px 8px; border-radius:4px; font-weight:600;">${passText}</span></td>
+                        <td><span style="color:${t.status=='approved'?'var(--success)':(t.status=='rejected'?'var(--danger)':'var(--warning)')}; font-weight:bold;">${t.status}</span></td>
+                        <td>${actionHTML}</td>
+                    </tr>`;
+            });
+        }
+
+        function deleteTask(userId, taskId) {
+            if(confirm("আপনি কি নিশ্চিতভাবে এই টাস্কটি ডিলিট করতে চান?")) {
+                db.ref(`tasks/${userId}/${taskId}`).remove()
+                    .then(() => alert("টাস্কটি সফলভাবে ডিলিট করা হয়েছে!"))
+                    .catch(err => alert("ত্রুটি: " + err.message));
+            }
+        }
+
+        // সব টাস্ক একবারে ক্লিয়ার করার ফাংশন
+        function clearAllTasks(type) {
+            let tasks = allGlobalTasks[type] || [];
+            if(tasks.length === 0) {
+                alert("ডিলিট করার মতো কোনো টাস্ক নেই!");
+                return;
+            }
+
+            if(confirm(`আপনি কি নিশ্চিতভাবে সব ${type.toUpperCase()} টাস্ক একবারে ডিলিট করতে চান?`)) {
+                let promises = tasks.map(t => db.ref(`tasks/${t.userId}/${t.taskId}`).remove());
+                Promise.all(promises)
+                    .then(() => alert("সব টাস্ক সফলভাবে মুছে ফেলা হয়েছে!"))
+                    .catch(err => alert("ত্রুটি: " + err.message));
+            }
+        }
+
+        async function reviewTask(userId, taskId, newStatus, rewardAmount) {
+            await db.ref(`tasks/${userId}/${taskId}/status`).set(newStatus);
+            const userRef = db.ref(`users/${userId}`);
+            const userSnap = await userRef.once('value');
+            const userData = userSnap.val() || {};
+
+            let pendingCount = userData.pendingTasksCount || 1;
+            if(pendingCount > 0) pendingCount -= 1;
+            await userRef.update({ pendingTasksCount: pendingCount });
+
+            if(newStatus === 'approved') {
+                await userRef.update({
+                    approvedTasksCount: firebase.database.ServerValue.increment(1),
+                    balance: firebase.database.ServerValue.increment(rewardAmount)
+                });
+            } else if(newStatus === 'rejected') {
+                await userRef.update({
+                    rejectedTasksCount: firebase.database.ServerValue.increment(1)
+                });
+            }
+            alert(`Task has been ${newStatus} successfully!`);
+        }
+
+        function loadWithdraws() {
+            db.ref('withdrawals/pending').on('value', s => {
+                const tb = document.querySelector('#pending-table tbody'); tb.innerHTML='';
+                if(s.exists()) {
+                    s.forEach(c => {
+                        const r = c.val();
+                        tb.innerHTML += `<tr><td><b>${r.userName}</b><br><small>${r.userId}</small></td><td>${r.method}<br><small>${r.account}</small></td><td style="color:var(--danger); font-weight:bold;">${r.amount} TK</td><td><button class="btn btn-sm btn-s" onclick="pay('${c.key}',1)"><i class="fas fa-check"></i></button><button class="btn btn-sm btn-d" onclick="pay('${c.key}',0)"><i class="fas fa-times"></i></button></td></tr>`;
+                    });
+                } else { tb.innerHTML='<tr><td colspan="4" style="text-align:center;">No Pending Requests</td></tr>'; }
+            });
+
+            db.ref('withdrawals/completed').on('value', s1 => {
+                db.ref('withdrawals/rejected').on('value', s2 => {
+                    const historyTb = document.querySelector('#history-table tbody');
+                    historyTb.innerHTML = '';
+                    let rows = [];
+
+                    if(s1.exists()) {
+                        s1.forEach(c => { rows.push({ ...c.val(), firebaseKey: c.key, folder: 'completed', displayStatus: 'Approved', color: 'var(--success)' }); });
+                    }
+                    if(s2.exists()) {
+                        s2.forEach(c => { rows.push({ ...c.val(), firebaseKey: c.key, folder: 'rejected', displayStatus: 'Rejected', color: 'var(--danger)' }); });
+                    }
+
+                    rows.sort((a, b) => b.timestamp - a.timestamp);
+
+                    if(rows.length > 0) {
+                        rows.forEach(r => {
+                            historyTb.innerHTML += `
+                                <tr>
+                                    <td><b>${r.userName || 'User'}</b><br><small>${r.userId}</small></td>
+                                    <td>${r.method}<br><small>${r.account}</small></td>
+                                    <td style="font-weight:bold;">${r.amount} TK</td>
+                                    <td><span style="color:${r.color}; font-weight:bold;">${r.displayStatus}</span></td>
+                                    <td><button class="btn btn-sm btn-d" onclick="deleteWithdrawHistory('${r.folder}', '${r.firebaseKey}', '${r.userId}')"><i class="fas fa-trash"></i></button></td>
+                                </tr>`;
+                        });
+                    } else {
+                        historyTb.innerHTML = '<tr><td colspan="5" style="text-align:center;">No History Found</td></tr>';
+                    }
+                });
+            });
+        }
+
+        function deleteWithdrawHistory(folder, key, userId) {
+            if(confirm("আপনি কি নিশ্চিতভাবে এই উইথড্র হিস্ট্রিটি ডিলিট করতে চান?")) {
+                db.ref(`withdrawals/${folder}/${key}`).remove()
+                    .then(() => {
+                        db.ref(`users/${userId}/withdrawHistory/${key}`).remove();
+                        alert("উইথড্র হিস্ট্রি সফলভাবে ডিলিট করা হয়েছে!");
+                    })
+                    .catch(err => alert("ত্রুটি: " + err.message));
+            }
+        }
+
+        // সব উইথড্র হিস্ট্রি একসাথে ডিলিট করার ফাংশন
+        function clearAllWithdrawHistory() {
+            if(confirm("আপনি কি নিশ্চিতভাবে সমস্ত উইথড্র হিস্ট্রি একবারে ডিলিট করতে চান?")) {
+                Promise.all([
+                    db.ref('withdrawals/completed').remove(),
+                    db.ref('withdrawals/rejected').remove()
+                ])
+                .then(() => alert("সকল উইথড্র হিস্ট্রি সফলভাবে মুছে ফেলা হয়েছে!"))
+                .catch(err => alert("ত্রুটি: " + err.message));
+            }
+        }
+
+        async function pay(k, ok) {
+            const s = await db.ref(`withdrawals/pending/${k}`).once('value');
+            const v = s.val();
+            if(!v) return;
+
+            const userId = v.userId;
+            const newStatus = ok ? 'approved' : 'rejected';
+
+            if(ok) {
+                await db.ref(`withdrawals/completed/${k}`).set({...v, status:'completed', timestamp:Date.now()});
+            } else {
+                await db.ref(`users/${userId}/balance`).set(firebase.database.ServerValue.increment(v.amount));
+                await db.ref(`withdrawals/rejected/${k}`).set({...v, status:'rejected', timestamp:Date.now()});
+            }
+
+            await db.ref(`users/${userId}/withdrawHistory/${k}/status`).set(newStatus);
+            db.ref(`withdrawals/pending/${k}`).remove();
+        }
+
+        function addMethodRow(name, minAmt) {
+            const container = document.getElementById('payment-methods-container');
+            const div = document.createElement('div');
+            div.className = 'method-row';
+            div.innerHTML = `
+                <input type="text" class="m-name" placeholder="Method Name (e.g. Bkash)" value="${name}">
+                <input type="number" class="m-amt" placeholder="Min Amount" value="${minAmt}">
+                <button type="button" class="btn btn-d" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(div);
+        }
+
+        function loadSettings() {
+            db.ref('config').on('value', s => {
+                const c = s.val() || {};
+                document.getElementById('curr-sym').value = c.currencySymbol || 'TK';
+                document.getElementById('bot-user').value = c.botUsername || '';
+                document.getElementById('ref-bonus').value = c.referralBonus || 0;
+                document.getElementById('min-ref').value = c.minWithdrawReferrals || 0;
+                document.getElementById('new-acc-price').value = c.newAccPrice || 10;
+                document.getElementById('old-acc-price').value = c.oldAccPrice || 25;
+                document.getElementById('used-acc-price').value = c.usedAccPrice || 15;
+                document.getElementById('daily-limit').value = c.dailyTaskLimit || 10;
+                document.getElementById('whatsapp-link').value = c.whatsappLink || '';
+                document.getElementById('telegram-link').value = c.telegramLink || '';
+                document.getElementById('popup-announcement').value = c.popupAnnouncement || '';
+
+                const container = document.getElementById('payment-methods-container');
+                container.innerHTML = '';
+                if(c.paymentMethods && Array.isArray(c.paymentMethods) && c.paymentMethods.length > 0) {
+                    c.paymentMethods.forEach(m => addMethodRow(m.name, m.minAmount));
+                }
+            });
+        }
+
+        function saveSettings() {
+            const methodRows = document.querySelectorAll('.method-row');
+            let methods = [];
+            methodRows.forEach(row => {
+                let name = row.querySelector('.m-name').value;
+                let minAmount = parseFloat(row.querySelector('.m-amt').value) || 0;
+                if(name) methods.push({ name, minAmount });
+            });
+
+            db.ref('config').update({ 
+                currencySymbol: document.getElementById('curr-sym').value, 
+                botUsername: document.getElementById('bot-user').value, 
+                referralBonus: parseFloat(document.getElementById('ref-bonus').value), 
+                minWithdrawReferrals: parseInt(document.getElementById('min-ref').value) || 0, 
+                newAccPrice: parseFloat(document.getElementById('new-acc-price').value) || 10,
+                oldAccPrice: parseFloat(document.getElementById('old-acc-price').value) || 25,
+                usedAccPrice: parseFloat(document.getElementById('old-acc-price') ? document.getElementById('used-acc-price').value : 15),
+                dailyTaskLimit: parseInt(document.getElementById('daily-limit').value) || 10,
+                whatsapplink: document.getElementById('whatsapp-link').value,
+                telegramLink: document.getElementById('telegram-link').value,
+                popupAnnouncement: document.getElementById('popup-announcement').value,
+                paymentMethods: methods.length > 0 ? methods : null 
+            }).then(()=>alert("Settings & Configurations Saved Successfully!"));
+        }
+    </script>
+</body>
+</html>
