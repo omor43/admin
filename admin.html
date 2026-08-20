@@ -89,7 +89,6 @@
             <i class="fas fa-bars" style="font-size: 1.5rem; cursor: pointer;" onclick="toggleMenu()"></i>
         </div>
 
-        <!-- DASHBOARD -->
         <div id="dashboard" class="page active">
             <div class="stats">
                 <div class="stat-item"><h3>Total Users</h3><h1 id="stat-users">0</h1></div>
@@ -98,7 +97,6 @@
             </div>
         </div>
 
-        <!-- USERS -->
         <div id="users" class="page">
             <div class="card">
                 <div class="card-head"><span class="card-title">User List</span><input type="text" id="search-box" placeholder="Search..." style="width: 200px;" onkeyup="filterUsers()"></div>
@@ -122,7 +120,6 @@
             </div>
         </div>
 
-        <!-- GMAIL TASKS -->
         <div id="gmail-tasks" class="page">
             <div class="card">
                 <div class="card-head">
@@ -152,7 +149,6 @@
             </div>
         </div>
 
-        <!-- FACEBOOK TASKS -->
         <div id="fb-tasks" class="page">
             <div class="card">
                 <div class="card-head">
@@ -182,7 +178,6 @@
             </div>
         </div>
 
-        <!-- INSTAGRAM TASKS -->
         <div id="insta-tasks" class="page">
             <div class="card">
                 <div class="card-head">
@@ -212,7 +207,6 @@
             </div>
         </div>
 
-        <!-- WITHDRAWALS -->
         <div id="withdraw" class="page">
             <div class="card">
                 <div class="card-head"><span class="card-title">Pending Requests</span></div>
@@ -240,7 +234,6 @@
             </div>
         </div>
 
-        <!-- SETTINGS -->
         <div id="settings" class="page">
             <div class="card">
                 <div class="card-head"><span class="card-title">General Settings, Prices & Supports</span></div>
@@ -319,9 +312,7 @@
             document.getElementById(pageId).classList.add('active');
             document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
             el.classList.add('active');
-            if(window.innerWidth <= 768) {
-                toggleMenu();
-            }
+            if(window.innerWidth <= 768) { toggleMenu(); }
         }
 
         function loadStats() {
@@ -381,20 +372,12 @@
                         userSnap.forEach(taskSnap => {
                             const taskId = taskSnap.key;
                             const t = taskSnap.val();
-                            
                             if(t) {
                                 const taskObj = { userId, taskId, ...t };
                                 const titleLower = (t.title || '').toLowerCase();
-
-                                if(titleLower.includes('gmail')) {
-                                    allGlobalTasks.gmail.push(taskObj);
-                                } else if(titleLower.includes('facebook') || titleLower.includes('fb')) {
-                                    allGlobalTasks.facebook.push(taskObj);
-                                } else if(titleLower.includes('instagram') || titleLower.includes('insta')) {
-                                    allGlobalTasks.instagram.push(taskObj);
-                                } else {
-                                    allGlobalTasks.instagram.push(taskObj);
-                                }
+                                if(titleLower.includes('gmail')) { allGlobalTasks.gmail.push(taskObj); }
+                                else if(titleLower.includes('facebook') || titleLower.includes('fb')) { allGlobalTasks.facebook.push(taskObj); }
+                                else { allGlobalTasks.instagram.push(taskObj); }
                             }
                         });
                     });
@@ -432,9 +415,7 @@
             }
 
             const tbody = document.querySelector(tableId);
-            if(tbody) {
-                renderTaskList(tasks, tbody, `No ${type.charAt(0).toUpperCase() + type.slice(1)} Tasks Found`);
-            }
+            if(tbody) { renderTaskList(tasks, tbody, `No ${type.charAt(0).toUpperCase() + type.slice(1)} Tasks Found`); }
         }
 
         function clearDateFilter(type) {
@@ -449,7 +430,6 @@
             let selectedDate = document.getElementById(dateInputId).value;
 
             tasks = tasks.filter(t => t.status === 'approved');
-
             if(selectedDate) {
                 tasks = tasks.filter(t => {
                     if(!t.timestamp) return false;
@@ -457,7 +437,6 @@
                     return taskDateStr === selectedDate;
                 });
             }
-
             if(tasks.length === 0) return;
 
             let csvContent = "data:text/csv;charset=utf-8,User ID,Account Type,Detail,Password,Status,Date\r\n";
@@ -517,24 +496,23 @@
         function clearAllTasks(type) {
             let tasks = allGlobalTasks[type] || [];
             if(tasks.length === 0) return;
-
             let promises = tasks.map(t => db.ref(`tasks/${t.userId}/${t.taskId}`).remove());
             Promise.all(promises).catch(err => console.error(err));
         }
 
-        // আপডেট করা reviewTask ফাংশন (রিজেক্ট করার সময় কারণ ইনপুট নেওয়ার সুবিধা সহ)
+        // রিজেক্ট কারণসহ টাস্ক রিভিউ ফাংশন
         async function reviewTask(userId, taskId, newStatus, rewardAmount) {
             let rejectReason = "";
             if(newStatus === 'rejected') {
-                rejectReason = prompt("কাজটি কেন রিজেক্ট করা হচ্ছে তার কারণ লিখুন:", "তথ্য সঠিক নয় বা শর্ত পূরণ হয়নি।");
-                if(rejectReason === null) return; // অ্যাডমিন ক্যানসেল করলে কাজ থামিয়ে দেবে
+                rejectReason = prompt("কাজটি কেন রিজেক্ট করা হচ্ছে তার কারণ লিখুন:", "পাসওয়ার্ড সঠিক নয়");
+                if(rejectReason === null) return;
             }
 
-            // ফায়ারবেসে স্ট্যাটাস এবং কারণ সেভ করা
-            await db.ref(`tasks/${userId}/${taskId}/status`).set(newStatus);
-            if(newStatus === 'rejected') {
-                await db.ref(`tasks/${userId}/${taskId}/rejectReason`).set(rejectReason);
-            }
+            // ফায়ারবেসে স্ট্যাটাস এবং কারণ আপডেট করা
+            await db.ref(`tasks/${userId}/${taskId}`).update({
+                status: newStatus,
+                rejectReason: newStatus === 'rejected' ? rejectReason : ""
+            });
 
             const userRef = db.ref(`users/${userId}`);
             const userSnap = await userRef.once('value');
@@ -573,12 +551,8 @@
                     historyTb.innerHTML = '';
                     let rows = [];
 
-                    if(s1.exists()) {
-                        s1.forEach(c => { rows.push({ ...c.val(), firebaseKey: c.key, folder: 'completed', displayStatus: 'Approved', color: 'var(--success)' }); });
-                    }
-                    if(s2.exists()) {
-                        s2.forEach(c => { rows.push({ ...c.val(), firebaseKey: c.key, folder: 'rejected', displayStatus: 'Rejected', color: 'var(--danger)' }); });
-                    }
+                    if(s1.exists()) { s1.forEach(c => { rows.push({ ...c.val(), firebaseKey: c.key, folder: 'completed', displayStatus: 'Approved', color: 'var(--success)' }); }); }
+                    if(s2.exists()) { s2.forEach(c => { rows.push({ ...c.val(), firebaseKey: c.key, folder: 'rejected', displayStatus: 'Rejected', color: 'var(--danger)' }); }); }
 
                     rows.sort((a, b) => b.timestamp - a.timestamp);
 
@@ -681,7 +655,7 @@
                 dailyTaskLimit: parseInt(document.getElementById('daily-limit').value) || 10,
                 whatsappLink: document.getElementById('whatsapp-link').value,
                 telegramLink: document.getElementById('telegram-link').value,
-                popupAnnouncement: document.getElementById('popup-announcement-txt') ? document.getElementById('popup-announcement-txt').value : document.getElementById('popup-announcement').value,
+                popupAnnouncement: document.getElementById('popup-announcement').value,
                 enableRefer: document.getElementById('refer-toggle').checked,
                 paymentMethods: methods.length > 0 ? methods : null 
             });
