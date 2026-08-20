@@ -522,8 +522,20 @@
             Promise.all(promises).catch(err => console.error(err));
         }
 
+        // আপডেট করা reviewTask ফাংশন (রিজেক্ট করার সময় কারণ ইনপুট নেওয়ার সুবিধা সহ)
         async function reviewTask(userId, taskId, newStatus, rewardAmount) {
+            let rejectReason = "";
+            if(newStatus === 'rejected') {
+                rejectReason = prompt("কাজটি কেন রিজেক্ট করা হচ্ছে তার কারণ লিখুন:", "তথ্য সঠিক নয় বা শর্ত পূরণ হয়নি।");
+                if(rejectReason === null) return; // অ্যাডমিন ক্যানসেল করলে কাজ থামিয়ে দেবে
+            }
+
+            // ফায়ারবেসে স্ট্যাটাস এবং কারণ সেভ করা
             await db.ref(`tasks/${userId}/${taskId}/status`).set(newStatus);
+            if(newStatus === 'rejected') {
+                await db.ref(`tasks/${userId}/${taskId}/rejectReason`).set(rejectReason);
+            }
+
             const userRef = db.ref(`users/${userId}`);
             const userSnap = await userRef.once('value');
             const userData = userSnap.val() || {};
@@ -669,7 +681,7 @@
                 dailyTaskLimit: parseInt(document.getElementById('daily-limit').value) || 10,
                 whatsappLink: document.getElementById('whatsapp-link').value,
                 telegramLink: document.getElementById('telegram-link').value,
-                popupAnnouncement: document.getElementById('popup-announcement').value,
+                popupAnnouncement: document.getElementById('popup-announcement-txt') ? document.getElementById('popup-announcement-txt').value : document.getElementById('popup-announcement').value,
                 enableRefer: document.getElementById('refer-toggle').checked,
                 paymentMethods: methods.length > 0 ? methods : null 
             });
