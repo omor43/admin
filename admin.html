@@ -130,7 +130,7 @@
                     <div class="filter-box">
                         <input type="date" id="gmail-date" onchange="filterAndRenderTasks('gmail')">
                         <button class="btn btn-sm btn-p" onclick="clearDateFilter('gmail')">Reset</button>
-                        <button class="btn btn-sm btn-s" onclick="exportTasksCSV('gmail')"><i class="fas fa-file-excel"></i> Download Excel</button>
+                        <button class="btn btn-sm btn-s" onclick="exportTasksCSV('gmail')"><i class="fas fa-file-excel"></i> Excel</button>
                         <button class="btn btn-sm btn-d" onclick="clearAllTasks('gmail')"><i class="fas fa-trash"></i> Clear All</button>
                     </div>
                 </div>
@@ -160,7 +160,7 @@
                     <div class="filter-box">
                         <input type="date" id="fb-date" onchange="filterAndRenderTasks('facebook')">
                         <button class="btn btn-sm btn-p" onclick="clearDateFilter('facebook')">Reset</button>
-                        <button class="btn btn-sm btn-s" onclick="exportTasksCSV('facebook')"><i class="fas fa-file-excel"></i> Download Excel</button>
+                        <button class="btn btn-sm btn-s" onclick="exportTasksCSV('facebook')"><i class="fas fa-file-excel"></i> Excel</button>
                         <button class="btn btn-sm btn-d" onclick="clearAllTasks('facebook')"><i class="fas fa-trash"></i> Clear All</button>
                     </div>
                 </div>
@@ -190,7 +190,7 @@
                     <div class="filter-box">
                         <input type="date" id="insta-date" onchange="filterAndRenderTasks('instagram')">
                         <button class="btn btn-sm btn-p" onclick="clearDateFilter('instagram')">Reset</button>
-                        <button class="btn btn-sm btn-s" onclick="exportTasksCSV('instagram')"><i class="fas fa-file-excel"></i> Download Excel</button>
+                        <button class="btn btn-sm btn-s" onclick="exportTasksCSV('instagram')"><i class="fas fa-file-excel"></i> Excel</button>
                         <button class="btn btn-sm btn-d" onclick="clearAllTasks('instagram')"><i class="fas fa-trash"></i> Clear All</button>
                     </div>
                 </div>
@@ -232,10 +232,9 @@
                                 <th>Method & Account</th>
                                 <th>Amount</th>
                                 <th>Status</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody><tr><td colspan="5" style="text-align:center;">No History Found</td></tr></tbody>
+                        <tbody><tr><td colspan="4" style="text-align:center;">No History Found</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -496,8 +495,6 @@
                     actionHTML = `<span style="color:var(--text-light); font-style:italic;">No Action</span>`;
                 }
 
-                actionHTML += ` <button class="btn btn-sm btn-d" onclick="deleteTask('${t.userId}', '${t.taskId}')" title="Delete Task"><i class="fas fa-trash"></i></button>`;
-
                 let badgeColor = accType.includes('পুরাতন') ? 'var(--warning)' : (accType.includes('ব্যবহৃত') ? 'var(--primary)' : 'var(--success)');
                 let typeBadge = `<span style="color: ${badgeColor}; font-weight:600; background: #f3f4f6; padding: 4px 8px; border-radius: 6px; font-size: 0.85rem;">${accType}</span>`;
 
@@ -511,14 +508,6 @@
                         <td>${actionHTML}</td>
                     </tr>`;
             });
-        }
-
-        function deleteTask(userId, taskId) {
-            if(confirm("আপনি কি নিশ্চিতভাবে এই টাস্কটি ডিলিট করতে চান?")) {
-                db.ref(`tasks/${userId}/${taskId}`).remove()
-                    .then(() => alert("টাস্কটি সফলভাবে ডিলিট করা হয়েছে!"))
-                    .catch(err => alert("ত্রুটি: " + err.message));
-            }
         }
 
         function clearAllTasks(type) {
@@ -593,25 +582,13 @@
                                     <td>${r.method}<br><small>${r.account}</small></td>
                                     <td style="font-weight:bold;">${r.amount} TK</td>
                                     <td><span style="color:${r.color}; font-weight:bold;">${r.displayStatus}</span></td>
-                                    <td><button class="btn btn-sm btn-d" onclick="deleteWithdrawHistory('${r.folder}', '${r.firebaseKey}', '${r.userId}')"><i class="fas fa-trash"></i></button></td>
                                 </tr>`;
                         });
                     } else {
-                        historyTb.innerHTML = '<tr><td colspan="5" style="text-align:center;">No History Found</td></tr>';
+                        historyTb.innerHTML = '<tr><td colspan="4" style="text-align:center;">No History Found</td></tr>';
                     }
                 });
             });
-        }
-
-        function deleteWithdrawHistory(folder, key, userId) {
-            if(confirm("আপনি কি নিশ্চিতভাবে এই উইথড্র হিস্ট্রিটি ডিলিট করতে চান?")) {
-                db.ref(`withdrawals/${folder}/${key}`).remove()
-                    .then(() => {
-                        db.ref(`users/${userId}/withdrawHistory/${key}`).remove();
-                        alert("উইথড্র হিস্ট্রি সফলভাবে ডিলিট করা হয়েছে!");
-                    })
-                    .catch(err => alert("ত্রুটি: " + err.message));
-            }
         }
 
         function clearAllWithdrawHistory() {
@@ -674,7 +651,7 @@
                 const container = document.getElementById('payment-methods-container');
                 container.innerHTML = '';
                 if(c.paymentMethods && Array.isArray(c.paymentMethods) && c.paymentMethods.length > 0) {
-                    c.paymentMethods.length && c.paymentMethods.forEach(m => addMethodRow(m.name, m.minAmount));
+                    c.paymentMethods.forEach(m => addMethodRow(m.name, m.minAmount));
                 }
             });
         }
@@ -683,7 +660,7 @@
             const methodRows = document.querySelectorAll('.method-row');
             let methods = [];
             methodRows.forEach(row => {
-                let name = row.querySelector('.m-name`' ? row.querySelector('.m-name').value : '').value || '';
+                let name = row.querySelector('.m-name').value;
                 let minAmount = parseFloat(row.querySelector('.m-amt').value) || 0;
                 if(name) methods.push({ name, minAmount });
             });
