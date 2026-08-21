@@ -44,6 +44,7 @@
         .user-cell { display: flex; align-items: center; gap: 10px; }
         
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.9rem; color: var(--text-light); }
         input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; outline: none; transition: 0.2s; background: #fff; }
@@ -62,7 +63,7 @@
             .main-content { margin-left: 0; width: 100%; padding: 15px; } 
             .mob-header { display: flex; } 
             .overlay.show { display: block; } 
-            .form-row { grid-template-columns: 1fr; } 
+            .form-row, .form-row-3 { grid-template-columns: 1fr; } 
         }
     </style>
 </head>
@@ -266,20 +267,38 @@
                     </div>
                 </div>
 
-                <!-- নতুন যুক্ত করা মেইনটেনেন্স মোড সুইচ ও টাইম ইনপুট সেকশন -->
+                <!-- মেইনটেনেন্স মোড অন/অফ সুইচ -->
                 <div class="form-row">
                     <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; background: #f9fafb; padding: 12px 15px; border-radius: 8px; border: 1px solid #d1d5db; grid-column: span 2;">
                         <label style="margin: 0; font-weight: 600; color: var(--text);">Enable Maintenance Mode (মেইনটেনেন্স মোড)</label>
                         <input type="checkbox" id="maintenance-toggle" style="width: 20px; height: 20px; cursor: pointer;">
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group" style="grid-column: span 2;">
-                        <label>Maintenance Duration (মেইনটেনেন্সের সময় - মিনিটে)</label>
-                        <input type="number" id="maintenance-duration" placeholder="যেমন: 30 মিনিট" value="30">
+
+                <!-- সময় নির্ধারণ: ৩ ভাগে বিভক্ত ঘর (ঘণ্টা বামে, মিনিট মাঝে, সেকেন্ড ডানে) -->
+                <div class="form-group">
+                    <label>Maintenance Duration (সময় নির্ধারণ)</label>
+                    <div class="form-row-3">
+                        <div>
+                            <label style="font-size: 0.75rem; color: #6b7280;">ঘণ্টা (Hours)</label>
+                            <input type="number" id="maintenance-hours" placeholder="0" value="0">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: #6b7280;">মিনিট (Minutes)</label>
+                            <input type="number" id="maintenance-minutes" placeholder="30" value="30">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: #6b7280;">সেকেন্ড (Seconds)</label>
+                            <input type="number" id="maintenance-seconds" placeholder="0" value="0">
+                        </div>
                     </div>
                 </div>
-                <!-- শেষ -->
+
+                <!-- কাস্টম মেসেজ লেখার আলাদা ঘর -->
+                <div class="form-group">
+                    <label>Maintenance Custom Message (বট বা নোটিশের কাস্টম লেখা)</label>
+                    <input type="text" id="maintenance-end-text" placeholder="যেমন: খুব শীঘ্রই ফিরে আসছি..." value="খুব শীঘ্রই সচল হচ্ছে...">
+                </div>
 
                 <div class="form-group">
                     <label>Popup Announcement for Users (Leave blank to disable)</label>
@@ -642,7 +661,10 @@
 
                 // মেইনটেনেন্স সেটিংস লোড করা
                 document.getElementById('maintenance-toggle').checked = c.enableMaintenance === true;
-                document.getElementById('maintenance-duration').value = c.maintenanceMinutes || 30;
+                document.getElementById('maintenance-hours').value = c.maintenanceHours || 0;
+                document.getElementById('maintenance-minutes').value = c.maintenanceMinutes || 30;
+                document.getElementById('maintenance-seconds').value = c.maintenanceSeconds || 0;
+                document.getElementById('maintenance-end-text').value = c.maintenanceEndText || "খুব শীঘ্রই সচল হচ্ছে...";
 
                 const container = document.getElementById('payment-methods-container');
                 container.innerHTML = '';
@@ -661,13 +683,16 @@
                 if(name) methods.push({ name, minAmount });
             });
 
-            // মেইনটেনেন্স মোড অন হলে টার্গেট টাইম ক্যালকুলেট করা
             const isMaintenanceEnabled = document.getElementById('maintenance-toggle').checked;
-            const minutes = parseInt(document.getElementById('maintenance-duration').value) || 30;
+            const hours = parseInt(document.getElementById('maintenance-hours').value) || 0;
+            const minutes = parseInt(document.getElementById('maintenance-minutes').value) || 0;
+            const seconds = parseInt(document.getElementById('maintenance-seconds').value) || 0;
+            const endText = document.getElementById('maintenance-end-text').value || "খুব শীঘ্রই সচল হচ্ছে...";
+            
             let maintenanceEndTime = 0;
-
             if (isMaintenanceEnabled) {
-                maintenanceEndTime = new Date().getTime() + (minutes * 60 * 1000);
+                const totalMillis = (hours * 3600 * 1000) + (minutes * 60 * 1000) + (seconds * 1000);
+                maintenanceEndTime = new Date().getTime() + totalMillis;
             }
 
             db.ref('config').update({ 
@@ -684,10 +709,12 @@
                 popupAnnouncement: document.getElementById('popup-announcement').value,
                 enableRefer: document.getElementById('refer-toggle').checked,
                 
-                // মেইনটেনেন্স ডেটা ফায়ারবেসে সেভ হবে
                 enableMaintenance: isMaintenanceEnabled,
+                maintenanceHours: hours,
                 maintenanceMinutes: minutes,
+                maintenanceSeconds: seconds,
                 maintenanceEndTime: maintenanceEndTime,
+                maintenanceEndText: endText,
 
                 paymentMethods: methods.length > 0 ? methods : null 
             });
