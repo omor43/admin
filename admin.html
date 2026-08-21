@@ -563,7 +563,7 @@
             }
 
             const tbody = document.querySelector(tableId);
-            if(tbody) { renderTaskList(tasks, tbody, `No Tasks Found`); }
+            if(tbody) { renderTaskList(tasks, tbody, `No Tasks Found`, key); }
         }
 
         function clearDateFilter(key) {
@@ -603,7 +603,7 @@
             document.body.removeChild(link);
         }
 
-        function renderTaskList(tasks, tbody, emptyText) {
+        function renderTaskList(tasks, tbody, emptyText, platKey) {
             tbody.innerHTML = '';
             if(tasks.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">${emptyText}</td></tr>`;
@@ -614,13 +614,19 @@
                 let detailText = t.detail || '';
                 let passText = t.password || 'N/A';
                 let accType = t.accountType || 'নতুন অ্যাকাউন্ট';
-                let rewardVal = t.rewardAmount || 10;
+                
+                let platObj = currentLoadedPlatforms.find(p => p.key === platKey) || {};
+                let currentRewardVal = 10;
+                if (accType.includes('পুরাতন')) currentRewardVal = parseFloat(platObj.oldPrice) || 25;
+                else if (accType.includes('ব্যবহৃত')) currentRewardVal = parseFloat(platObj.usedPrice) || 15;
+                else currentRewardVal = parseFloat(platObj.newPrice) || 10;
+
                 let twoFaInfo = t.twoFactorCode ? `<br><small style="color:var(--warning);">2FA: ${t.twoFactorCode}</small>` : '';
 
                 let actionHTML = '';
                 if (t.status === 'pending') {
                     actionHTML = `
-                        <button class="btn btn-sm btn-s" onclick="reviewTask('${t.userId}', '${t.taskId}', 'approved', ${rewardVal})"><i class="fas fa-check"></i> Approve</button>
+                        <button class="btn btn-sm btn-s" onclick="reviewTask('${t.userId}', '${t.taskId}', 'approved', ${currentRewardVal})"><i class="fas fa-check"></i> Approve</button>
                         <button class="btn btn-sm btn-d" onclick="reviewTask('${t.userId}', '${t.taskId}', 'rejected', 0)"><i class="fas fa-times"></i> Reject</button>
                     `;
                 } else {
@@ -628,7 +634,7 @@
                 }
 
                 let badgeColor = accType.includes('পুরাতন') ? 'var(--warning)' : (accType.includes('ব্যবহৃত') ? 'var(--primary)' : 'var(--success)');
-                let typeBadge = `<span style="color: ${badgeColor}; font-weight:600; background: #f3f4f6; padding: 4px 8px; border-radius: 6px; font-size: 0.85rem;">${accType}</span>`;
+                let typeBadge = `<span style="color: ${badgeColor}; font-weight:600; background: #f3f4f6; padding: 4px 8px; border-radius: 6px; font-size: 0.85rem;">${accType} (${currentRewardVal} TK)</span>`;
 
                 tbody.innerHTML += `
                     <tr>
@@ -658,27 +664,39 @@
 
             await db.ref(`tasks/${userId}/${taskId}`).update({
                 status: newStatus,
+                rewardAmount: rewardAmount,
+                reward: rewardAmount + ' TK',
                 rejectReason: newStatus === 'rejected' ? rejectReason : ""
             });
 
-            const userRef = db.ref(`users/${userId}`);
-            const userSnap = await userRef.once('value');
-            const userData = userSnap.val() || {};
+            setTimeout(async () => {
+                const userTasksSnap = await db.ref(`tasks/${userId}`).once('value');
+                let totalNewBalance = 0;
+                let approvedCount = 0;
+                let rejectedCount = 0;
+                let pendingCount = 0;
 
-            let pendingCount = userData.pendingTasksCount || 1;
-            if(pendingCount > 0) pendingCount -= 1;
-            await userRef.update({ pendingTasksCount: pendingCount });
+                if (userTasksSnap.exists()) {
+                    userTasksSnap.forEach(ts => {
+                        let tkData = ts.val();
+                        if (tkData.status === 'approved') {
+                            approvedCount++;
+                            totalNewBalance += (parseFloat(tkData.rewardAmount) || 10);
+                        } else if (tkData.status === 'rejected') {
+                            rejectedCount++;
+                        } else if (tkData.status === 'pending') {
+                            pendingCount++;
+                        }
+                    });
+                }
 
-            if(newStatus === 'approved') {
-                await userRef.update({
-                    approvedTasksCount: firebase.database.ServerValue.increment(1),
-                    balance: firebase.database.ServerValue.increment(rewardAmount)
+                await db.ref(`users/${userId}`).update({
+                    balance: totalNewBalance,
+                    approvedTasksCount: approvedCount,
+                    rejectedTasksCount: rejectedCount,
+                    pendingTasksCount: pendingCount
                 });
-            } else if(newStatus === 'rejected') {
-                await userRef.update({
-                    rejectedTasksCount: firebase.database.ServerValue.increment(1)
-                });
-            }
+            }, 300);
         }
 
         function loadWithdraws() {
@@ -790,7 +808,6 @@
             db.ref('config/customPlatforms').on('value', s => {
                 let platforms = s.val();
                 
-                // ডিফল্ট প্ল্যাটফর্মগুলো নির্দিষ্ট ইউনিক key এবং নির্ধারিত সঠিক লোগো/আইকনসহ সেট করা হলো যাতে কখনোই মিক্স-আপ না হয়
                 if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
                     platforms = [
                         { key: 'gmail', name: 'Gmail সেল করুন', icon: 'fab fa-google', color: '#dc2626', enable: true, newPrice: 10, oldPrice: 25, usedPrice: 15, newLimit: 'Unlimited', oldLimit: 'Unlimited', usedLimit: 'Unlimited', enableNew: true, enableOld: true, enableUsed: true },
@@ -811,7 +828,6 @@
                 pagesContainer.innerHTML = '';
 
                 platforms.forEach(p => {
-                    // প্রতিটি প্ল্যাটফর্মের নিজস্ব key অনুযায়ী আইকন ফিক্সড রাখার লজিক
                     let fixedIcon = p.icon;
                     if (!fixedIcon || fixedIcon.trim() === '') {
                         if (p.key === 'gmail') fixedIcon = 'fab fa-google';
