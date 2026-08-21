@@ -275,9 +275,8 @@
                     </div>
                 </div>
 
-                <!-- সময় নির্ধারণ: ৩ ভাগে বিভক্ত ঘর (ঘণ্টা বামে, মিনিট মাঝে, সেকেন্ড ডানে) -->
                 <div class="form-group">
-                    <label>Maintenance Duration (সময় নির্ধারণ)</label>
+                    <label>Maintenance Duration (সময় নির্ধারণ - ঐচ্ছিক)</label>
                     <div class="form-row-3">
                         <div>
                             <label style="font-size: 0.75rem; color: #6b7280;">ঘণ্টা (Hours)</label>
@@ -285,7 +284,7 @@
                         </div>
                         <div>
                             <label style="font-size: 0.75rem; color: #6b7280;">মিনিট (Minutes)</label>
-                            <input type="number" id="maintenance-minutes" placeholder="30" value="30">
+                            <input type="number" id="maintenance-minutes" placeholder="0" value="0">
                         </div>
                         <div>
                             <label style="font-size: 0.75rem; color: #6b7280;">সেকেন্ড (Seconds)</label>
@@ -294,15 +293,21 @@
                     </div>
                 </div>
 
-                <!-- কাস্টম মেসেজ লেখার আলাদা ঘর -->
                 <div class="form-group">
                     <label>Maintenance Custom Message (বট বা নোটিশের কাস্টম লেখা)</label>
                     <input type="text" id="maintenance-end-text" placeholder="যেমন: খুব শীঘ্রই ফিরে আসছি..." value="খুব শীঘ্রই সচল হচ্ছে...">
                 </div>
 
+                <!-- হোম পেজের স্লাইডার নোটিশ -->
                 <div class="form-group">
-                    <label>Popup Announcement for Users (Leave blank to disable)</label>
-                    <textarea id="popup-announcement" rows="3" placeholder="জরুরী নোটিশ এখানে লিখুন..."></textarea>
+                    <label>Slider Notice (হোম পেজের স্লাইডার নোটিশ)</label>
+                    <textarea id="popup-announcement" rows="2" placeholder="হোম পেজের স্লাইডার নোটিশ এখানে লিখুন..."></textarea>
+                </div>
+
+                <!-- ইউজার অ্যাপে পপআপ আকারে দেখানোর নোটিশ -->
+                <div class="form-group">
+                    <label>Popup Notice for Users (ইউজারদের জন্য আলাদা পপআপ নোটিশ)</label>
+                    <textarea id="popup-notice-text" rows="3" placeholder="জরুরী পপআপ নোটিশ এখানে লিখুন..."></textarea>
                 </div>
 
                 <div class="form-group">
@@ -657,12 +662,12 @@
                 document.getElementById('whatsapp-link').value = c.whatsappLink || '';
                 document.getElementById('telegram-link').value = c.telegramLink || '';
                 document.getElementById('popup-announcement').value = c.popupAnnouncement || '';
+                document.getElementById('popup-notice-text').value = c.popupNoticeText || '';
                 document.getElementById('refer-toggle').checked = c.enableRefer !== false;
 
-                // মেইনটেনেন্স সেটিংস লোড করা
                 document.getElementById('maintenance-toggle').checked = c.enableMaintenance === true;
                 document.getElementById('maintenance-hours').value = c.maintenanceHours || 0;
-                document.getElementById('maintenance-minutes').value = c.maintenanceMinutes || 30;
+                document.getElementById('maintenance-minutes').value = c.maintenanceMinutes || 0;
                 document.getElementById('maintenance-seconds').value = c.maintenanceSeconds || 0;
                 document.getElementById('maintenance-end-text').value = c.maintenanceEndText || "খুব শীঘ্রই সচল হচ্ছে...";
 
@@ -692,7 +697,9 @@
             let maintenanceEndTime = 0;
             if (isMaintenanceEnabled) {
                 const totalMillis = (hours * 3600 * 1000) + (minutes * 60 * 1000) + (seconds * 1000);
-                maintenanceEndTime = new Date().getTime() + totalMillis;
+                if (totalMillis > 0) {
+                    maintenanceEndTime = new Date().getTime() + totalMillis;
+                }
             }
 
             db.ref('config').update({ 
@@ -707,6 +714,7 @@
                 whatsappLink: document.getElementById('whatsapp-link').value,
                 telegramLink: document.getElementById('telegram-link').value,
                 popupAnnouncement: document.getElementById('popup-announcement').value,
+                popupNoticeText: document.getElementById('popup-notice-text').value,
                 enableRefer: document.getElementById('refer-toggle').checked,
                 
                 enableMaintenance: isMaintenanceEnabled,
