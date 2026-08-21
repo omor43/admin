@@ -266,6 +266,21 @@
                     </div>
                 </div>
 
+                <!-- নতুন যুক্ত করা মেইনটেনেন্স মোড সুইচ ও টাইম ইনপুট সেকশন -->
+                <div class="form-row">
+                    <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; background: #f9fafb; padding: 12px 15px; border-radius: 8px; border: 1px solid #d1d5db; grid-column: span 2;">
+                        <label style="margin: 0; font-weight: 600; color: var(--text);">Enable Maintenance Mode (মেইনটেনেন্স মোড)</label>
+                        <input type="checkbox" id="maintenance-toggle" style="width: 20px; height: 20px; cursor: pointer;">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Maintenance Duration (মেইনটেনেন্সের সময় - মিনিটে)</label>
+                        <input type="number" id="maintenance-duration" placeholder="যেমন: 30 মিনিট" value="30">
+                    </div>
+                </div>
+                <!-- শেষ -->
+
                 <div class="form-group">
                     <label>Popup Announcement for Users (Leave blank to disable)</label>
                     <textarea id="popup-announcement" rows="3" placeholder="জরুরী নোটিশ এখানে লিখুন..."></textarea>
@@ -500,7 +515,6 @@
             Promise.all(promises).catch(err => console.error(err));
         }
 
-        // রিজেক্ট কারণসহ টাস্ক রিভিউ ফাংশন
         async function reviewTask(userId, taskId, newStatus, rewardAmount) {
             let rejectReason = "";
             if(newStatus === 'rejected') {
@@ -508,7 +522,6 @@
                 if(rejectReason === null) return;
             }
 
-            // ফায়ারবেসে স্ট্যাটাস এবং কারণ আপডেট করা
             await db.ref(`tasks/${userId}/${taskId}`).update({
                 status: newStatus,
                 rejectReason: newStatus === 'rejected' ? rejectReason : ""
@@ -627,6 +640,10 @@
                 document.getElementById('popup-announcement').value = c.popupAnnouncement || '';
                 document.getElementById('refer-toggle').checked = c.enableRefer !== false;
 
+                // মেইনটেনেন্স সেটিংস লোড করা
+                document.getElementById('maintenance-toggle').checked = c.enableMaintenance === true;
+                document.getElementById('maintenance-duration').value = c.maintenanceMinutes || 30;
+
                 const container = document.getElementById('payment-methods-container');
                 container.innerHTML = '';
                 if(c.paymentMethods && Array.isArray(c.paymentMethods) && c.paymentMethods.length > 0) {
@@ -644,6 +661,15 @@
                 if(name) methods.push({ name, minAmount });
             });
 
+            // মেইনটেনেন্স মোড অন হলে টার্গেট টাইম ক্যালকুলেট করা
+            const isMaintenanceEnabled = document.getElementById('maintenance-toggle').checked;
+            const minutes = parseInt(document.getElementById('maintenance-duration').value) || 30;
+            let maintenanceEndTime = 0;
+
+            if (isMaintenanceEnabled) {
+                maintenanceEndTime = new Date().getTime() + (minutes * 60 * 1000);
+            }
+
             db.ref('config').update({ 
                 currencySymbol: document.getElementById('curr-sym').value, 
                 botUsername: document.getElementById('bot-user').value, 
@@ -657,8 +683,16 @@
                 telegramLink: document.getElementById('telegram-link').value,
                 popupAnnouncement: document.getElementById('popup-announcement').value,
                 enableRefer: document.getElementById('refer-toggle').checked,
+                
+                // মেইনটেনেন্স ডেটা ফায়ারবেসে সেভ হবে
+                enableMaintenance: isMaintenanceEnabled,
+                maintenanceMinutes: minutes,
+                maintenanceEndTime: maintenanceEndTime,
+
                 paymentMethods: methods.length > 0 ? methods : null 
             });
+
+            alert('সেটিংস সফলভাবে সেভ হয়েছে!');
         }
     </script>
 </body>
