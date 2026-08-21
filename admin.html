@@ -76,6 +76,7 @@
         <div class="menu">
             <div class="menu-item active" onclick="nav('dashboard', this)"><i class="fas fa-home"></i> Dashboard</div>
             <div class="menu-item" onclick="nav('users', this)"><i class="fas fa-users"></i> Users</div>
+            <div class="menu-item" onclick="nav('tasks-manage', this)"><i class="fas fa-tasks"></i> Tasks</div>
             <div class="menu-item" onclick="nav('gmail-tasks', this)"><i class="fab fa-google" style="color: #ea4335;"></i> Gmail Account</div>
             <div class="menu-item" onclick="nav('fb-tasks', this)"><i class="fab fa-facebook" style="color: #1877f2;"></i> Facebook Account</div>
             <div class="menu-item" onclick="nav('insta-tasks', this)"><i class="fab fa-instagram" style="color: #e1306c;"></i> Instagram Account</div>
@@ -116,6 +117,60 @@
                             </tr>
                         </thead>
                         <tbody><tr><td colspan="8" style="text-align:center;">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks Management Section -->
+        <div id="tasks-manage" class="page">
+            <div class="card">
+                <div class="card-head"><span class="card-title">Add New Task</span></div>
+                <div class="form-group">
+                    <label>Task Name</label>
+                    <input type="text" id="new-task-name" placeholder="e.g. Join Channel">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Reward</label>
+                        <input type="number" id="new-task-reward" placeholder="1.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Task Type</label>
+                        <select id="new-task-type">
+                            <option value="One Time">One Time</option>
+                            <option value="Daily">Daily</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Task Link</label>
+                    <input type="text" id="new-task-link" placeholder="https://...">
+                </div>
+                <div class="form-group">
+                    <label>Icon URL</label>
+                    <input type="text" id="new-task-icon" placeholder="https://...">
+                </div>
+                <button class="btn btn-s" onclick="addNewAdminTask()">Add Task</button>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><span class="card-title">Active Tasks</span></div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Icon</th>
+                                <th>Name</th>
+                                <th>Reward</th>
+                                <th>Type</th>
+                                <th>Link</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-tasks-tbody">
+                            <tr><td colspan="6" style="text-align:center;">No Tasks Found</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -339,7 +394,7 @@
         let userList = [];
         let allGlobalTasks = { gmail: [], facebook: [], instagram: [] };
 
-        window.onload = () => { loadStats(); loadUsers(); loadAdminTasks(); loadWithdraws(); loadSettings(); };
+        window.onload = () => { loadStats(); loadUsers(); loadAdminTasks(); loadWithdraws(); loadSettings(); loadActiveAdminTasks(); };
 
         function toggleMenu() {
             document.getElementById('sidebar').classList.toggle('show');
@@ -400,6 +455,68 @@
         }
         function toggleBan(uid, status) { db.ref(`users/${uid}/isBanned`).set(status); }
         function deleteUser(uid) { db.ref(`users/${uid}`).remove(); }
+
+        // --- Admin Tasks Management Functions ---
+        function addNewAdminTask() {
+            const name = document.getElementById('new-task-name').value.trim();
+            const reward = parseFloat(document.getElementById('new-task-reward').value) || 0;
+            const type = document.getElementById('new-task-type').value;
+            const link = document.getElementById('new-task-link').value.trim();
+            const icon = document.getElementById('new-task-icon').value.trim();
+
+            if(!name || !link) {
+                alert('দয়া করে টাস্কের নাম এবং লিংক দিন!');
+                return;
+            }
+
+            db.ref('adminTasks').push({
+                name, reward, type, link, icon, timestamp: Date.now()
+            }, (error) => {
+                if(error) {
+                    alert('টাস্ক যোগ করতে সমস্যা হয়েছে!');
+                } else {
+                    alert('সফলভাবে টাস্ক যোগ করা হয়েছে!');
+                    document.getElementById('new-task-name').value = '';
+                    document.getElementById('new-task-reward').value = '';
+                    document.getElementById('new-task-link').value = '';
+                    document.getElementById('new-task-icon').value = '';
+                }
+            });
+        }
+
+        function loadActiveAdminTasks() {
+            db.ref('adminTasks').on('value', snapshot => {
+                const tbody = document.getElementById('admin-tasks-tbody');
+                tbody.innerHTML = '';
+                if(snapshot.exists()) {
+                    snapshot.forEach(child => {
+                        const tId = child.key;
+                        const t = child.val();
+                        const iconImg = t.icon ? `<img src="${t.icon}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;">` : `<i class="fas fa-tasks"></i>`;
+                        
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${iconImg}</td>
+                                <td><b>${t.name}</b></td>
+                                <td style="color:var(--success); font-weight:bold;">${t.reward} TK</td>
+                                <td>${t.type}</td>
+                                <td><a href="${t.link}" target="_blank" style="color:var(--primary);">Visit Link</a></td>
+                                <td><button class="btn btn-sm btn-d" onclick="deleteAdminTask('${tId}')"><i class="fas fa-trash"></i> Delete</button></td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No Tasks Found</td></tr>';
+                }
+            });
+        }
+
+        function deleteAdminTask(tId) {
+            if(confirm('আপনি কি এই টাস্কটি ডিলিট করতে চান?')) {
+                db.ref(`adminTasks/${tId}`).remove();
+            }
+        }
+        // ----------------------------------------
 
         function loadAdminTasks() {
             db.ref('tasks').on('value', snapshot => {
