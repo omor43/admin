@@ -14,7 +14,7 @@
         
         .sidebar { width: 260px; background: var(--surface); height: 100vh; position: fixed; left: 0; top: 0; border-right: 1px solid #e5e7eb; z-index: 1000; transition: transform 0.3s ease; }
         .brand { padding: 20px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 10px; font-size: 1.25rem; font-weight: 700; color: var(--primary); }
-        .menu { padding: 15px 0; }
+        .menu { padding: 15px 0; overflow-y: auto; max-height: calc(100vh - 80px); }
         .menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 25px; color: var(--text-light); text-decoration: none; font-weight: 500; cursor: pointer; transition: 0.2s; }
         .menu-item:hover, .menu-item.active { background: #eef2ff; color: var(--primary); border-right: 3px solid var(--primary); }
         
@@ -47,7 +47,7 @@
         .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.9rem; color: var(--text-light); }
-        input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; outline: none; transition: 0.2s; background: #fff; }
+        input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; outline: none; transition: 0.2s; background: #fff; font-size: 0.9rem; }
         input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
         
         .btn { padding: 8px 16px; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; transition: 0.2s; font-size: 0.9rem; color: white; }
@@ -57,13 +57,17 @@
         .method-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 900; display: none; }
         
+        .platform-config-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .platform-title { font-weight: bold; font-size: 1rem; color: var(--primary); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+        .sub-category-row { display: grid; grid-template-columns: 1.4fr 1fr 1.2fr 0.8fr; gap: 8px; align-items: center; margin-bottom: 8px; background: #fff; padding: 8px 10px; border-radius: 6px; border: 1px solid #e5e7eb; }
+
         @media (max-width: 768px) { 
             .sidebar { transform: translateX(-100%); } 
             .sidebar.show { transform: translateX(0); } 
             .main-content { margin-left: 0; width: 100%; padding: 15px; } 
             .mob-header { display: flex; } 
             .overlay.show { display: block; } 
-            .form-row, .form-row-3 { grid-template-columns: 1fr; } 
+            .form-row, .form-row-3, .sub-category-row { grid-template-columns: 1fr; gap: 6px; } 
         }
     </style>
 </head>
@@ -73,13 +77,12 @@
 
     <aside class="sidebar" id="sidebar">
         <div class="brand"><i class="fas fa-shield-alt"></i> Admin Pro</div>
-        <div class="menu">
+        <div class="menu" id="adminSidebarMenu">
             <div class="menu-item active" onclick="nav('dashboard', this)"><i class="fas fa-home"></i> Dashboard</div>
             <div class="menu-item" onclick="nav('users', this)"><i class="fas fa-users"></i> Users</div>
             <div class="menu-item" onclick="nav('tasks-manage', this)"><i class="fas fa-tasks"></i> Tasks</div>
-            <div class="menu-item" onclick="nav('gmail-tasks', this)"><i class="fab fa-google" style="color: #ea4335;"></i> Gmail Account</div>
-            <div class="menu-item" onclick="nav('fb-tasks', this)"><i class="fab fa-facebook" style="color: #1877f2;"></i> Facebook Account</div>
-            <div class="menu-item" onclick="nav('insta-tasks', this)"><i class="fab fa-instagram" style="color: #e1306c;"></i> Instagram Account</div>
+            <div class="menu-item" onclick="nav('platform-pricing', this)"><i class="fas fa-tags" style="color: #6366f1;"></i> Pricing Control</div>
+            <div id="dynamicAdminMenuContainer"></div>
             <div class="menu-item" onclick="nav('withdraw', this)"><i class="fas fa-wallet"></i> Withdrawals</div>
             <div class="menu-item" onclick="nav('settings', this)"><i class="fas fa-cog"></i> Settings</div>
         </div>
@@ -122,7 +125,6 @@
             </div>
         </div>
 
-        <!-- Tasks Management Section -->
         <div id="tasks-manage" class="page">
             <div class="card">
                 <div class="card-head"><span class="card-title">Add New Task</span></div>
@@ -176,92 +178,20 @@
             </div>
         </div>
 
-        <div id="gmail-tasks" class="page">
+        <div id="platform-pricing" class="page">
             <div class="card">
                 <div class="card-head">
-                    <span class="card-title">Gmail Account Submissions</span>
-                    <div class="filter-box">
-                        <input type="date" id="gmail-date" onchange="filterAndRenderTasks('gmail')">
-                        <button class="btn btn-sm btn-p" onclick="clearDateFilter('gmail')">Reset</button>
-                        <button class="btn btn-sm btn-s" onclick="exportTasksCSV('gmail')"><i class="fas fa-file-excel"></i> Excel</button>
-                        <button class="btn btn-sm btn-d" onclick="clearAllTasks('gmail')"><i class="fas fa-trash"></i> Clear All</button>
-                    </div>
+                    <span class="card-title"><i class="fas fa-tags" style="color:var(--primary);"></i> Platform & Pricing Control</span>
+                    <button class="btn btn-sm btn-s" onclick="openAddPlatformModal()"><i class="fas fa-plus"></i> Add New Platform</button>
                 </div>
-                <div class="table-container">
-                    <table id="gmail-task-table">
-                        <thead>
-                            <tr>
-                                <th>User ID</th>
-                                <th>Account Type</th>
-                                <th>Gmail Address</th>
-                                <th>Password</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody><tr><td colspan="6" style="text-align:center;">Loading Gmail Tasks...</td></tr></tbody>
-                    </table>
-                </div>
+                
+                <div id="dynamicPlatformsConfigContainer"></div>
+
+                <button class="btn btn-p" onclick="savePricingSettings()">Save Pricing & Platform Changes</button>
             </div>
         </div>
 
-        <div id="fb-tasks" class="page">
-            <div class="card">
-                <div class="card-head">
-                    <span class="card-title">Facebook Account Submissions</span>
-                    <div class="filter-box">
-                        <input type="date" id="fb-date" onchange="filterAndRenderTasks('facebook')">
-                        <button class="btn btn-sm btn-p" onclick="clearDateFilter('facebook')">Reset</button>
-                        <button class="btn btn-sm btn-s" onclick="exportTasksCSV('facebook')"><i class="fas fa-file-excel"></i> Excel</button>
-                        <button class="btn btn-sm btn-d" onclick="clearAllTasks('facebook')"><i class="fas fa-trash"></i> Clear All</button>
-                    </div>
-                </div>
-                <div class="table-container">
-                    <table id="fb-task-table">
-                        <thead>
-                            <tr>
-                                <th>User ID</th>
-                                <th>Account Type</th>
-                                <th>Account Detail</th>
-                                <th>Password</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody><tr><td colspan="6" style="text-align:center;">Loading Facebook Tasks...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div id="insta-tasks" class="page">
-            <div class="card">
-                <div class="card-head">
-                    <span class="card-title">Instagram Account Submissions</span>
-                    <div class="filter-box">
-                        <input type="date" id="insta-date" onchange="filterAndRenderTasks('instagram')">
-                        <button class="btn btn-sm btn-p" onclick="clearDateFilter('instagram')">Reset</button>
-                        <button class="btn btn-sm btn-s" onclick="exportTasksCSV('instagram')"><i class="fas fa-file-excel"></i> Excel</button>
-                        <button class="btn btn-sm btn-d" onclick="clearAllTasks('instagram')"><i class="fas fa-trash"></i> Clear All</button>
-                    </div>
-                </div>
-                <div class="table-container">
-                    <table id="insta-task-table">
-                        <thead>
-                            <tr>
-                                <th>User ID</th>
-                                <th>Account Type</th>
-                                <th>Account Detail</th>
-                                <th>Password</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody><tr><td colspan="6" style="text-align:center;">Loading Instagram Tasks...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        <div id="dynamicTaskPagesContainer"></div>
 
         <div id="withdraw" class="page">
             <div class="card">
@@ -292,7 +222,7 @@
 
         <div id="settings" class="page">
             <div class="card">
-                <div class="card-head"><span class="card-title">General Settings, Prices & Supports</span></div>
+                <div class="card-head"><span class="card-title">General Settings & Bot Configuration</span></div>
                 <div class="form-row">
                     <div class="form-group"><label>Currency Symbol</label><input id="curr-sym"></div>
                     <div class="form-group"><label>Bot Username</label><input id="bot-user"></div>
@@ -302,31 +232,25 @@
                     <div class="form-group"><label>Min Refs to Withdraw</label><input type="number" id="min-ref"></div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group"><label>নতুন অ্যাকাউন্ট দাম (TK)</label><input type="number" id="new-acc-price"></div>
-                    <div class="form-group"><label>পুরাতন অ্যাকাউন্ট দাম (TK)</label><input type="number" id="old-acc-price"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>ব্যবহৃত অ্যাকাউন্ট দাম (TK)</label><input type="number" id="used-acc-price"></div>
                     <div class="form-group"><label>দৈনিক কাজের লিমিট (Daily Task Limit)</label><input type="number" id="daily-limit"></div>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group"><label>WhatsApp Support Link</label><input id="whatsapp-link"></div>
                     <div class="form-group"><label>Telegram Support Link</label><input id="telegram-link"></div>
                 </div>
 
                 <div class="form-row">
-                    <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; background: #f9fafb; padding: 12px 15px; border-radius: 8px; border: 1px solid #d1d5db; grid-column: span 2;">
+                    <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; background: #f9fafb; padding: 10px 15px; border-radius: 6px; border: 1px solid #d1d5db; grid-column: span 2;">
                         <label style="margin: 0; font-weight: 600; color: var(--text);">Enable Refer Section (রেফার অপশন)</label>
-                        <input type="checkbox" id="refer-toggle" style="width: 20px; height: 20px; cursor: pointer;">
+                        <input type="checkbox" id="refer-toggle" style="width: 18px; height: 18px; cursor: pointer;">
                     </div>
                 </div>
 
-                <!-- মেইনটেনেন্স মোড অন/অফ সুইচ -->
                 <div class="form-row">
-                    <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; background: #f9fafb; padding: 12px 15px; border-radius: 8px; border: 1px solid #d1d5db; grid-column: span 2;">
+                    <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; background: #f9fafb; padding: 10px 15px; border-radius: 6px; border: 1px solid #d1d5db; grid-column: span 2;">
                         <label style="margin: 0; font-weight: 600; color: var(--text);">Enable Maintenance Mode (মেইনটেনেন্স মোড)</label>
-                        <input type="checkbox" id="maintenance-toggle" style="width: 20px; height: 20px; cursor: pointer;">
+                        <input type="checkbox" id="maintenance-toggle" style="width: 18px; height: 18px; cursor: pointer;">
                     </div>
                 </div>
 
@@ -349,20 +273,18 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Maintenance Custom Message (বট বা নোটিশের কাস্টম লেখা)</label>
+                    <label>Maintenance Custom Message</label>
                     <input type="text" id="maintenance-end-text" placeholder="যেমন: খুব শীঘ্রই ফিরে আসছি..." value="খুব শীঘ্রই সচল হচ্ছে...">
                 </div>
 
-                <!-- হোম পেজের স্লাইডার নোটিশ -->
                 <div class="form-group">
                     <label>Slider Notice (হোম পেজের স্লাইডার নোটিশ)</label>
                     <textarea id="popup-announcement" rows="2" placeholder="হোম পেজের স্লাইডার নোটিশ এখানে লিখুন..."></textarea>
                 </div>
 
-                <!-- ইউজার অ্যাপে পপআপ আকারে দেখানোর নোটিশ -->
                 <div class="form-group">
-                    <label>Popup Notice for Users (ইউজারদের জন্য আলাদা পপআপ নোটিশ)</label>
-                    <textarea id="popup-notice-text" rows="3" placeholder="জরুরী পপআপ নোটিশ এখানে লিখুন..."></textarea>
+                    <label>Popup Notice for Users (পপআপ নোটিশ)</label>
+                    <textarea id="popup-notice-text" rows="2" placeholder="জরুরী পপআপ নোটিশ এখানে লিখুন..."></textarea>
                 </div>
 
                 <div class="form-group">
@@ -371,10 +293,21 @@
                     <button type="button" class="btn btn-w" style="margin-top: 10px;" onclick="addMethodRow('', '')">+ Add Method</button>
                 </div>
 
-                <div style="margin-top:30px;"><button class="btn btn-p" onclick="saveSettings()">Save All Changes</button></div>
+                <div style="margin-top:30px;"><button class="btn btn-p" onclick="saveSettings()">Save General Settings</button></div>
             </div>
         </div>
     </main>
+
+    <div id="addPlatformModal" class="page" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center;">
+        <div class="card" style="width:100%; max-width:450px; margin:auto;">
+            <div class="card-head"><span class="card-title">Add New Platform</span><i class="fas fa-times" style="cursor:pointer;" onclick="closeAddPlatformModal()"></i></div>
+            <div class="form-group"><label>Platform Key (English, no space, e.g. tiktok, binance)</label><input type="text" id="new-plat-key" placeholder="tiktok"></div>
+            <div class="form-group"><label>Platform Name (e.g. TikTok Account)</label><input type="text" id="new-plat-name" placeholder="TikTok Account"></div>
+            <div class="form-group"><label>Icon Class (FontAwesome e.g. fab fa-tiktok or fas fa-wallet)</label><input type="text" id="new-plat-icon" placeholder="fab fa-tiktok" value="fab fa-tiktok"></div>
+            <div class="form-group"><label>Color Code or Gradient (e.g. #000000 or linear-gradient(...))</label><input type="text" id="new-plat-color" placeholder="#000000" value="#000000"></div>
+            <button class="btn btn-p" style="width:100%;" onclick="createNewPlatform()">Create Platform</button>
+        </div>
+    </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -392,9 +325,10 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         let userList = [];
-        let allGlobalTasks = { gmail: [], facebook: [], instagram: [] };
+        let allGlobalTasks = {};
+        let currentLoadedPlatforms = [];
 
-        window.onload = () => { loadStats(); loadUsers(); loadAdminTasks(); loadWithdraws(); loadSettings(); loadActiveAdminTasks(); };
+        window.onload = () => { loadStats(); loadUsers(); loadAdminTasks(); loadWithdraws(); loadSettings(); loadActiveAdminTasks(); loadPricingSettings(); };
 
         function toggleMenu() {
             document.getElementById('sidebar').classList.toggle('show');
@@ -403,9 +337,10 @@
 
         function nav(pageId, el) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
+            const targetPage = document.getElementById(pageId);
+            if(targetPage) targetPage.classList.add('active');
             document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
-            el.classList.add('active');
+            if(el) el.classList.add('active');
             if(window.innerWidth <= 768) { toggleMenu(); }
         }
 
@@ -456,7 +391,6 @@
         function toggleBan(uid, status) { db.ref(`users/${uid}/isBanned`).set(status); }
         function deleteUser(uid) { db.ref(`users/${uid}`).remove(); }
 
-        // --- Admin Tasks Management Functions ---
         function addNewAdminTask() {
             const name = document.getElementById('new-task-name').value.trim();
             const reward = parseFloat(document.getElementById('new-task-reward').value) || 0;
@@ -516,11 +450,60 @@
                 db.ref(`adminTasks/${tId}`).remove();
             }
         }
-        // ----------------------------------------
+
+        function openAddPlatformModal() { document.getElementById('addPlatformModal').style.display = 'flex'; }
+        function closeAddPlatformModal() { document.getElementById('addPlatformModal').style.display = 'none'; }
+
+        function createNewPlatform() {
+            let key = document.getElementById('new-plat-key').value.trim().toLowerCase().replace(/\s+/g, '_');
+            let name = document.getElementById('new-plat-name').value.trim();
+            let icon = document.getElementById('new-plat-icon').value.trim();
+            let color = document.getElementById('new-plat-color').value.trim();
+
+            if(!key || !name) {
+                alert('দয়া করে প্ল্যাটফর্মের কি এবং নাম দিন!');
+                return;
+            }
+
+            db.ref(`config/customPlatforms`).once('value', snapshot => {
+                let list = snapshot.val() || [];
+                if(list.some(p => p.key === key)) {
+                    alert('এই নামের প্ল্যাটফর্মটি ইতিমধ্যে রয়েছে!');
+                    return;
+                }
+
+                list.push({
+                    key, name, icon: icon || 'fas fa-wallet', color: color || '#6366f1',
+                    enable: true, newPrice: 10, oldPrice: 20, usedPrice: 15,
+                    newLimit: 'Unlimited', oldLimit: 'Unlimited', usedLimit: 'Unlimited',
+                    enableNew: true, enableOld: true, enableUsed: true
+                });
+
+                db.ref('config/customPlatforms').set(list, () => {
+                    alert('সফলভাবে নতুন প্ল্যাটফর্ম তৈরি করা হয়েছে!');
+                    closeAddPlatformModal();
+                    document.getElementById('new-plat-key').value = '';
+                    document.getElementById('new-plat-name').value = '';
+                });
+            });
+        }
+
+        function deletePlatform(key) {
+            if(confirm('আপনি কি এই প্ল্যাটফর্মটি ডিলিট করতে চান?')) {
+                db.ref('config/customPlatforms').once('value', snapshot => {
+                    let list = snapshot.val() || [];
+                    list = list.filter(p => p.key !== key);
+                    db.ref('config/customPlatforms').set(list, () => {
+                        alert('প্ল্যাটফর্মটি সফলভাবে ডিলিট করা হয়েছে!');
+                    });
+                });
+            }
+        }
 
         function loadAdminTasks() {
             db.ref('tasks').on('value', snapshot => {
-                allGlobalTasks = { gmail: [], facebook: [], instagram: [] };
+                allGlobalTasks = {};
+                currentLoadedPlatforms.forEach(p => { allGlobalTasks[p.key] = []; });
 
                 if(snapshot.exists()) {
                     snapshot.forEach(userSnap => {
@@ -531,9 +514,21 @@
                             if(t) {
                                 const taskObj = { userId, taskId, ...t };
                                 const titleLower = (t.title || '').toLowerCase();
-                                if(titleLower.includes('gmail')) { allGlobalTasks.gmail.push(taskObj); }
-                                else if(titleLower.includes('facebook') || titleLower.includes('fb')) { allGlobalTasks.facebook.push(taskObj); }
-                                else { allGlobalTasks.instagram.push(taskObj); }
+                                
+                                let matched = false;
+                                currentLoadedPlatforms.forEach(p => {
+                                    if(titleLower.includes(p.key.toLowerCase()) || titleLower.includes(p.name.toLowerCase())) {
+                                        if(!allGlobalTasks[p.key]) allGlobalTasks[p.key] = [];
+                                        allGlobalTasks[p.key].push(taskObj);
+                                        matched = true;
+                                    }
+                                });
+
+                                if(!matched && currentLoadedPlatforms.length > 0) {
+                                    let firstKey = currentLoadedPlatforms[0].key;
+                                    if(!allGlobalTasks[firstKey]) allGlobalTasks[firstKey] = [];
+                                    allGlobalTasks[firstKey].push(taskObj);
+                                }
                             }
                         });
                     });
@@ -545,20 +540,17 @@
                     return (b.timestamp || 0) - (a.timestamp || 0);
                 };
 
-                allGlobalTasks.gmail.sort(sortTasks);
-                allGlobalTasks.facebook.sort(sortTasks);
-                allGlobalTasks.instagram.sort(sortTasks);
-
-                filterAndRenderTasks('gmail');
-                filterAndRenderTasks('facebook');
-                filterAndRenderTasks('instagram');
+                currentLoadedPlatforms.forEach(p => {
+                    if(allGlobalTasks[p.key]) allGlobalTasks[p.key].sort(sortTasks);
+                    filterAndRenderTasks(p.key);
+                });
             });
         }
 
-        function filterAndRenderTasks(type) {
-            let tasks = allGlobalTasks[type] || [];
-            let dateInputId = type === 'gmail' ? 'gmail-date' : (type === 'facebook' ? 'fb-date' : 'insta-date');
-            let tableId = type === 'gmail' ? '#gmail-task-table tbody' : (type === 'facebook' ? '#fb-task-table tbody' : '#insta-task-table tbody');
+        function filterAndRenderTasks(key) {
+            let tasks = allGlobalTasks[key] || [];
+            let dateInputId = `${key}-date`;
+            let tableId = `#${key}-task-table tbody`;
             let dateInput = document.getElementById(dateInputId);
             let selectedDate = dateInput ? dateInput.value : '';
 
@@ -571,18 +563,18 @@
             }
 
             const tbody = document.querySelector(tableId);
-            if(tbody) { renderTaskList(tasks, tbody, `No ${type.charAt(0).toUpperCase() + type.slice(1)} Tasks Found`); }
+            if(tbody) { renderTaskList(tasks, tbody, `No Tasks Found`); }
         }
 
-        function clearDateFilter(type) {
-            let dateInputId = type === 'gmail' ? 'gmail-date' : (type === 'facebook' ? 'fb-date' : 'insta-date');
+        function clearDateFilter(key) {
+            let dateInputId = `${key}-date`;
             document.getElementById(dateInputId).value = '';
-            filterAndRenderTasks(type);
+            filterAndRenderTasks(key);
         }
 
-        function exportTasksCSV(type) {
-            let tasks = allGlobalTasks[type] || [];
-            let dateInputId = type === 'gmail' ? 'gmail-date' : (type === 'facebook' ? 'fb-date' : 'insta-date');
+        function exportTasksCSV(key) {
+            let tasks = allGlobalTasks[key] || [];
+            let dateInputId = `${key}-date`;
             let selectedDate = document.getElementById(dateInputId).value;
 
             tasks = tasks.filter(t => t.status === 'approved');
@@ -605,7 +597,7 @@
             let encodedUri = encodeURI(csvContent);
             let link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `${type}_approved_tasks_${selectedDate || 'all'}.csv`);
+            link.setAttribute("download", `${key}_approved_tasks_${selectedDate || 'all'}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -623,6 +615,7 @@
                 let passText = t.password || 'N/A';
                 let accType = t.accountType || 'নতুন অ্যাকাউন্ট';
                 let rewardVal = t.rewardAmount || 10;
+                let twoFaInfo = t.twoFactorCode ? `<br><small style="color:var(--warning);">2FA: ${t.twoFactorCode}</small>` : '';
 
                 let actionHTML = '';
                 if (t.status === 'pending') {
@@ -641,7 +634,7 @@
                     <tr>
                         <td><small>${t.userId}</small></td>
                         <td>${typeBadge}</td>
-                        <td><b>${detailText}</b></td>
+                        <td><b>${detailText}</b>${twoFaInfo}</td>
                         <td><span style="background:#eef2ff; color:var(--primary); padding:3px 8px; border-radius:4px; font-weight:600;">${passText}</span></td>
                         <td><span style="color:${t.status=='approved'?'var(--success)':(t.status=='rejected'?'var(--danger)':'var(--warning)')}; font-weight:bold;">${t.status}</span></td>
                         <td>${actionHTML}</td>
@@ -649,8 +642,8 @@
             });
         }
 
-        function clearAllTasks(type) {
-            let tasks = allGlobalTasks[type] || [];
+        function clearAllTasks(key) {
+            let tasks = allGlobalTasks[key] || [];
             if(tasks.length === 0) return;
             let promises = tasks.map(t => db.ref(`tasks/${t.userId}/${t.taskId}`).remove());
             Promise.all(promises).catch(err => console.error(err));
@@ -659,7 +652,7 @@
         async function reviewTask(userId, taskId, newStatus, rewardAmount) {
             let rejectReason = "";
             if(newStatus === 'rejected') {
-                rejectReason = prompt("কাজটি কেন রিজেক্ট করা হচ্ছে তার কারণ লিখুন:", "পাসওয়ার্ড সঠিক নয়");
+                rejectReason = prompt("কাজটি কেন রিজেক্ট করা হচ্ছে তার কারণ লিখুন:", "পাসওয়ার্ড বা 2FA সঠিক নয়");
                 if(rejectReason === null) return;
             }
 
@@ -772,9 +765,6 @@
                 document.getElementById('bot-user').value = c.botUsername || '';
                 document.getElementById('ref-bonus').value = c.referralBonus || 0;
                 document.getElementById('min-ref').value = c.minWithdrawReferrals || 0;
-                document.getElementById('new-acc-price').value = c.newAccPrice || 10;
-                document.getElementById('old-acc-price').value = c.oldAccPrice || 25;
-                document.getElementById('used-acc-price').value = c.usedAccPrice || 15;
                 document.getElementById('daily-limit').value = c.dailyTaskLimit || 10;
                 document.getElementById('whatsapp-link').value = c.whatsappLink || '';
                 document.getElementById('telegram-link').value = c.telegramLink || '';
@@ -793,6 +783,148 @@
                 if(c.paymentMethods && Array.isArray(c.paymentMethods) && c.paymentMethods.length > 0) {
                     c.paymentMethods.forEach(m => addMethodRow(m.name, m.minAmount));
                 }
+            });
+        }
+
+        function loadPricingSettings() {
+            db.ref('config/customPlatforms').on('value', s => {
+                let platforms = s.val();
+                
+                // ডিফল্ট প্ল্যাটফর্মগুলো নির্দিষ্ট ইউনিক key এবং নির্ধারিত সঠিক লোগো/আইকনসহ সেট করা হলো যাতে কখনোই মিক্স-আপ না হয়
+                if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
+                    platforms = [
+                        { key: 'gmail', name: 'Gmail সেল করুন', icon: 'fab fa-google', color: '#dc2626', enable: true, newPrice: 10, oldPrice: 25, usedPrice: 15, newLimit: 'Unlimited', oldLimit: 'Unlimited', usedLimit: 'Unlimited', enableNew: true, enableOld: true, enableUsed: true },
+                        { key: 'facebook', name: 'Facebook অ্যাকাউন্ট সেল', icon: 'fab fa-facebook', color: '#2563eb', enable: true, newPrice: 10, oldPrice: 25, usedPrice: 15, newLimit: 'Unlimited', oldLimit: 'Unlimited', usedLimit: 'Unlimited', enableNew: true, enableOld: true, enableUsed: true },
+                        { key: 'instagram', name: 'Instagram অ্যাকাউন্ট সেল', icon: 'fab fa-instagram', color: '#e1306c', enable: true, newPrice: 10, oldPrice: 25, usedPrice: 15, newLimit: 'Unlimited', oldLimit: 'Unlimited', usedLimit: 'Unlimited', enableNew: true, enableOld: true, enableUsed: true }
+                    ];
+                    db.ref('config/customPlatforms').set(platforms);
+                }
+
+                currentLoadedPlatforms = platforms;
+
+                const configContainer = document.getElementById('dynamicPlatformsConfigContainer');
+                const menuContainer = document.getElementById('dynamicAdminMenuContainer');
+                const pagesContainer = document.getElementById('dynamicTaskPagesContainer');
+
+                configContainer.innerHTML = '';
+                menuContainer.innerHTML = '';
+                pagesContainer.innerHTML = '';
+
+                platforms.forEach(p => {
+                    // প্রতিটি প্ল্যাটফর্মের নিজস্ব key অনুযায়ী আইকন ফিক্সড রাখার লজিক
+                    let fixedIcon = p.icon;
+                    if (!fixedIcon || fixedIcon.trim() === '') {
+                        if (p.key === 'gmail') fixedIcon = 'fab fa-google';
+                        else if (p.key === 'facebook') fixedIcon = 'fab fa-facebook';
+                        else if (p.key === 'instagram') fixedIcon = 'fab fa-instagram';
+                        else if (p.key === 'tiktok') fixedIcon = 'fab fa-tiktok';
+                        else fixedIcon = 'fas fa-globe';
+                    }
+
+                    configContainer.innerHTML += `
+                        <div class="platform-config-box" data-key="${p.key}">
+                            <div class="platform-title">
+                                <span><i class="${fixedIcon}" style="color:${p.color || '#6366f1'};"></i> ${p.name} (${p.key})</span>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <label style="display:flex; align-items:center; gap:5px; font-size:0.85rem; cursor:pointer; font-weight:normal;"><input type="checkbox" class="plat-en" ${p.enable !== false ? 'checked' : ''} style="width:15px; height:15px;"> Active</label>
+                                    <button class="btn btn-sm btn-d" onclick="deletePlatform('${p.key}')"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group" style="margin-bottom: 8px;"><label style="font-size:0.75rem;">Display Name</label><input type="text" class="plat-name" value="${p.name}"></div>
+                                <div class="form-group" style="margin-bottom: 8px;"><label style="font-size:0.75rem;">Icon (FA class)</label><input type="text" class="plat-icon" value="${fixedIcon}"></div>
+                            </div>
+                            <div style="font-size:0.8rem; font-weight:600; color:var(--text-light); margin-bottom:5px;">ক্যাটাগরি, প্রাইস, লিমিট ও স্ট্যাটাস:</div>
+                            
+                            <div class="sub-category-row">
+                                <div><strong style="font-size:0.85rem;">নতুন অ্যাকাউন্ট</strong></div>
+                                <div><input type="number" class="plat-new-p" value="${p.newPrice ?? 10}"></div>
+                                <div><input type="text" class="plat-new-l" value="${p.newLimit || 'Unlimited'}"></div>
+                                <div style="text-align:center; font-size:0.8rem;"><input type="checkbox" class="plat-en-new" ${p.enableNew !== false ? 'checked' : ''} style="width:15px; height:15px; vertical-align:middle;"> অন</div>
+                            </div>
+                            <div class="sub-category-row">
+                                <div><strong style="font-size:0.85rem;">পুরাতন অ্যাকাউন্ট</strong></div>
+                                <div><input type="number" class="plat-old-p" value="${p.oldPrice ?? 25}"></div>
+                                <div><input type="text" class="plat-old-l" value="${p.oldLimit || 'Unlimited'}"></div>
+                                <div style="text-align:center; font-size:0.8rem;"><input type="checkbox" class="plat-en-old" ${p.enableOld !== false ? 'checked' : ''} style="width:15px; height:15px; vertical-align:middle;"> অন</div>
+                            </div>
+                            <div class="sub-category-row">
+                                <div><strong style="font-size:0.85rem;">ব্যবহৃত অ্যাকাউন্ট</strong></div>
+                                <div><input type="number" class="plat-used-p" value="${p.usedPrice ?? 15}"></div>
+                                <div><input type="text" class="plat-used-l" value="${p.usedLimit || 'Unlimited'}"></div>
+                                <div style="text-align:center; font-size:0.8rem;"><input type="checkbox" class="plat-en-used" ${p.enableUsed !== false ? 'checked' : ''} style="width:15px; height:15px; vertical-align:middle;"> অন</div>
+                            </div>
+                        </div>
+                    `;
+
+                    menuContainer.innerHTML += `
+                        <div class="menu-item" onclick="nav('${p.key}-tasks', this)"><i class="${fixedIcon}" style="color:${p.color || '#6366f1'};"></i> ${p.name}</div>
+                    `;
+
+                    pagesContainer.innerHTML += `
+                        <div id="${p.key}-tasks" class="page">
+                            <div class="card">
+                                <div class="card-head">
+                                    <span class="card-title">${p.name} Submissions</span>
+                                    <div class="filter-box">
+                                        <input type="date" id="${p.key}-date" onchange="filterAndRenderTasks('${p.key}')">
+                                        <button class="btn btn-sm btn-p" onclick="clearDateFilter('${p.key}')">Reset</button>
+                                        <button class="btn btn-sm btn-s" onclick="exportTasksCSV('${p.key}')"><i class="fas fa-file-excel"></i> Excel</button>
+                                        <button class="btn btn-sm btn-d" onclick="clearAllTasks('${p.key}')"><i class="fas fa-trash"></i> Clear All</button>
+                                    </div>
+                                </div>
+                                <div class="table-container">
+                                    <table id="${p.key}-task-table">
+                                        <thead>
+                                            <tr>
+                                                <th>User ID</th>
+                                                <th>Account Type</th>
+                                                <th>Account Detail</th>
+                                                <th>Password</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody><tr><td colspan="6" style="text-align:center;">Loading Submissions...</td></tr></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                loadAdminTasks();
+            });
+        }
+
+        function savePricingSettings() {
+            const boxes = document.querySelectorAll('.platform-config-box');
+            let updatedPlatforms = [];
+
+            boxes.forEach(box => {
+                let key = box.getAttribute('data-key');
+                let oldObj = currentLoadedPlatforms.find(p => p.key === key) || {};
+
+                updatedPlatforms.push({
+                    key: key,
+                    name: box.querySelector('.plat-name').value || key,
+                    icon: box.querySelector('.plat-icon').value || oldObj.icon || 'fas fa-wallet',
+                    color: oldObj.color || '#6366f1',
+                    enable: box.querySelector('.plat-en').checked,
+                    newPrice: parseFloat(box.querySelector('.plat-new-p').value) || 0,
+                    oldPrice: parseFloat(box.querySelector('.plat-old-p').value) || 0,
+                    usedPrice: parseFloat(box.querySelector('.plat-used-p').value) || 0,
+                    newLimit: box.querySelector('.plat-new-l').value || 'Unlimited',
+                    oldLimit: box.querySelector('.plat-old-l').value || 'Unlimited',
+                    usedLimit: box.querySelector('.plat-used-l').value || 'Unlimited',
+                    enableNew: box.querySelector('.plat-en-new').checked,
+                    enableOld: box.querySelector('.plat-en-old').checked,
+                    enableUsed: box.querySelector('.plat-en-used').checked
+                });
+            });
+
+            db.ref('config/customPlatforms').set(updatedPlatforms, () => {
+                alert('প্রাইসিং ও প্ল্যাটফর্ম কন্ট্রোল সফলভাবে সেভ হয়েছে!');
             });
         }
 
@@ -824,16 +956,13 @@
                 botUsername: document.getElementById('bot-user').value, 
                 referralBonus: parseFloat(document.getElementById('ref-bonus').value), 
                 minWithdrawReferrals: parseInt(document.getElementById('min-ref').value) || 0, 
-                newAccPrice: parseFloat(document.getElementById('new-acc-price').value) || 10,
-                oldAccPrice: parseFloat(document.getElementById('old-acc-price').value) || 25,
-                usedAccPrice: parseFloat(document.getElementById('used-acc-price').value) || 15,
                 dailyTaskLimit: parseInt(document.getElementById('daily-limit').value) || 10,
                 whatsappLink: document.getElementById('whatsapp-link').value,
                 telegramLink: document.getElementById('telegram-link').value,
                 popupAnnouncement: document.getElementById('popup-announcement').value,
                 popupNoticeText: document.getElementById('popup-notice-text').value,
                 enableRefer: document.getElementById('refer-toggle').checked,
-                
+
                 enableMaintenance: isMaintenanceEnabled,
                 maintenanceHours: hours,
                 maintenanceMinutes: minutes,
@@ -844,7 +973,7 @@
                 paymentMethods: methods.length > 0 ? methods : null 
             });
 
-            alert('সেটিংস সফলভাবে সেভ হয়েছে!');
+            alert('সাধারণ সেটিংস সফলভাবে সেভ হয়েছে!');
         }
     </script>
 </body>
