@@ -81,7 +81,9 @@
             <div class="menu-item active" onclick="nav('dashboard', this)"><i class="fas fa-home"></i> Dashboard</div>
             <div class="menu-item" onclick="nav('users', this)"><i class="fas fa-users"></i> Users</div>
             <div class="menu-item" onclick="nav('tasks-manage', this)"><i class="fas fa-tasks"></i> Tasks</div>
-            <div class="menu-item" onclick="nav('platform-pricing', this)"><i class="fas fa-tags" style="color: #6366f1;"></i> Pricing Control</div>
+            <div class="menu-item" onclick="nav('auto-create-pricing', this)"><i class="fas fa-robot" style="color: #10b981;"></i> অটো ক্রিয়েট মেথড প্রাইস এন্ড কন্ট্রোল</div>
+            <div class="menu-item" onclick="nav('platform-pricing', this)"><i class="fas fa-tags" style="color: #6366f1;"></i> ম্যানুয়াল ওয়ার্ক মেথড প্রাইস এন্ড কন্ট্রোল</div>
+            <div class="menu-item" onclick="nav('like-work-settings', this)"><i class="fas fa-thumbs-up" style="color: #ec4899;"></i> ওয়ার্ক কন্ট্রোল</div>
             <div id="dynamicAdminMenuContainer"></div>
             <div class="menu-item" onclick="nav('withdraw', this)"><i class="fas fa-wallet"></i> Withdrawals</div>
             <div class="menu-item" onclick="nav('settings', this)"><i class="fas fa-cog"></i> Settings</div>
@@ -178,16 +180,40 @@
             </div>
         </div>
 
+        <!-- ওয়ার্ক কন্ট্রোল পেজ সেকশন -->
+        <div id="like-work-settings" class="page">
+            <div class="card">
+                <!-- ডায়নামিক্যালি এখানে ওয়ার্ক কন্ট্রোল লিস্ট রেন্ডার হবে -->
+            </div>
+        </div>
+
+        <div id="auto-create-pricing" class="page">
+            <div class="card">
+                <div class="card-head">
+                    <span class="card-title"><i class="fas fa-robot" style="color:var(--success);"></i> অটো ক্রিয়েট মেথড প্রাইস এন্ড কন্ট্রোল</span>
+                </div>
+                <div style="font-size: 0.88em; color: var(--text-light); margin-bottom: 15px;">
+                    🤖 এখান থেকে ইউজার ইন্টারফেসে অটো জেনারেট হওয়া অ্যাকাউন্টগুলোর প্রাইস ও অন/অফ কন্ট্রোল করুন।
+                </div>
+                <div id="autoCreatePlatformsConfigContainer"></div>
+                <button class="btn btn-p" onclick="saveAutoCreatePricingSettings()">Save Auto Create Settings</button>
+            </div>
+        </div>
+
         <div id="platform-pricing" class="page">
             <div class="card">
                 <div class="card-head">
-                    <span class="card-title"><i class="fas fa-tags" style="color:var(--primary);"></i> Platform & Pricing Control</span>
+                    <span class="card-title"><i class="fas fa-tags" style="color:var(--primary);"></i> ম্যানুয়াল ওয়ার্ক মেথড প্রাইস এন্ড কন্ট্রোল</span>
                     <button class="btn btn-sm btn-s" onclick="openAddPlatformModal()"><i class="fas fa-plus"></i> Add New Platform</button>
                 </div>
                 
+                <div style="font-size: 0.88em; color: var(--text-light); margin-bottom: 15px;">
+                    🛠️ এখান থেকে আপনি পুরাতন এবং ব্যবহৃত অ্যাকাউন্টের প্রাইস ও অন/অফ কন্ট্রোল করতে পারবেন[span_1](start_span)[span_1](end_span).
+                </div>
+
                 <div id="dynamicPlatformsConfigContainer"></div>
 
-                <button class="btn btn-p" onclick="savePricingSettings()">Save Pricing & Platform Changes</button>
+                <button class="btn btn-p" onclick="savePricingSettings()">Save Manual Pricing & Changes</button>
             </div>
         </div>
 
@@ -328,7 +354,7 @@
         let allGlobalTasks = {};
         let currentLoadedPlatforms = [];
 
-        window.onload = () => { loadStats(); loadUsers(); loadAdminTasks(); loadWithdraws(); loadSettings(); loadActiveAdminTasks(); loadPricingSettings(); };
+        window.onload = () => { loadStats(); loadUsers(); loadAdminTasks(); loadWithdraws(); loadSettings(); loadActiveAdminTasks(); loadPricingSettings(); loadLikeWorkSettings(); };
 
         function toggleMenu() {
             document.getElementById('sidebar').classList.toggle('show');
@@ -451,6 +477,78 @@
             }
         }
 
+        function loadLikeWorkSettings() {
+            db.ref('config/customPlatforms').on('value', platSnap => {
+                let platforms = platSnap.val() || [];
+                db.ref('config/likeWork').on('value', snapshot => {
+                    const lw = snapshot.val() || {};
+                    const container = document.querySelector('#like-work-settings .card');
+                    
+                    let html = `
+                        <div class="card-head">
+                            <span class="card-title"><i class="fas fa-thumbs-up" style="color:#ec4899;"></i> ওয়ার্ক কন্ট্রোল (Work Control)</span>
+                        </div>
+                        <div style="font-size: 0.88em; color: var(--text-light); margin-bottom: 20px;">
+                            👍 এখান থেকে ফেসবুক ওয়ার্ক, ইনস্টাগ্রাম ওয়ার্ক, জিমেইল ওয়ার্ক এবং নতুন যোগ করা যেকোনো প্ল্যাটফর্মের কাজ অন বা অফ করতে পারবেন। এই কন্ট্রোলটি সরাসরি ইউজার প্যানেলের প্ল্যাটফর্মগুলো দেখানোর জন্য কাজ করবে।
+                        </div>
+                    `;
+
+                    let defaultPlats = [
+                        { key: 'facebook', name: 'ফেসবুক ওয়ার্ক (Facebook Work)', icon: 'fab fa-facebook', color: '#2563eb' },
+                        { key: 'instagram', name: 'ইনস্টাগ্রাম ওয়ার্ক (Instagram Work)', icon: 'fab fa-instagram', color: '#e1306c' },
+                        { key: 'gmail', name: 'জিমেইল ওয়ার্ক (Gmail Work)', icon: 'fab fa-google', color: '#dc2626' }
+                    ];
+
+                    let allPlats = [...defaultPlats];
+                    platforms.forEach(p => {
+                        if (!allPlats.some(dp => dp.key === p.key)) {
+                            allPlats.push({
+                                key: p.key,
+                                name: p.name + ' Work',
+                                icon: p.icon || 'fas fa-globe',
+                                color: p.color || '#6366f1'
+                            });
+                        }
+                    });
+
+                    allPlats.forEach(p => {
+                        let isChecked = lw[p.key] !== false ? 'checked' : '';
+                        html += `
+                            <div class="platform-config-box" data-work-key="${p.key}">
+                                <div class="platform-title">
+                                    <span><i class="${p.icon}" style="color:${p.color};"></i> ${p.name}</span>
+                                    <label style="display:flex; align-items:center; gap:5px; font-size:0.85rem; cursor:pointer; font-weight:normal;">
+                                        <input type="checkbox" class="work-control-chk" data-key="${p.key}" ${isChecked} style="width:16px; height:16px;"> Active (চালু)
+                                    </label>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `<button class="btn btn-p" style="margin-top: 10px;" onclick="saveLikeWorkSettings()">Save Work Control Settings</button>`;
+                    container.innerHTML = html;
+                });
+            });
+        }
+
+        function saveLikeWorkSettings() {
+            const checkboxes = document.querySelectorAll('.work-control-chk');
+            let likeWorkData = {};
+
+            checkboxes.forEach(chk => {
+                let key = chk.getAttribute('data-key');
+                likeWorkData[key] = chk.checked;
+            });
+
+            db.ref('config/likeWork').set(likeWorkData, (error) => {
+                if(error) {
+                    alert('ওয়ার্ক কন্ট্রোল সেটিংস সেভ করতে সমস্যা হয়েছে!');
+                } else {
+                    alert('ওয়ার্ক কন্ট্রোল সেটিংস সফলভাবে সেভ হয়েছে!');
+                }
+            });
+        }
+
         function openAddPlatformModal() { document.getElementById('addPlatformModal').style.display = 'flex'; }
         function closeAddPlatformModal() { document.getElementById('addPlatformModal').style.display = 'none'; }
 
@@ -474,9 +572,9 @@
 
                 list.push({
                     key, name, icon: icon || 'fas fa-wallet', color: color || '#6366f1',
-                    enable: true, newPrice: 10, oldPrice: 20, usedPrice: 15,
-                    newLimit: 'Unlimited', oldLimit: 'Unlimited', usedLimit: 'Unlimited',
-                    enableNew: true, enableOld: true, enableUsed: true
+                    enableAuto: true, enableOld: true, enableUsed: true,
+                    autoPrice: 10, oldPrice: 25, usedPrice: 15,
+                    autoLimit: 'Unlimited', oldLimit: 'Unlimited', usedLimit: 'Unlimited'
                 });
 
                 db.ref('config/customPlatforms').set(list, () => {
@@ -613,13 +711,13 @@
             tasks.forEach(t => {
                 let detailText = t.detail || '';
                 let passText = t.password || 'N/A';
-                let accType = t.accountType || 'নতুন অ্যাকাউন্ট';
+                let accType = t.accountType || 'পুরাতন অ্যাকাউন্ট';
                 
                 let platObj = currentLoadedPlatforms.find(p => p.key === platKey) || {};
                 let currentRewardVal = 10;
                 if (accType.includes('পুরাতন')) currentRewardVal = parseFloat(platObj.oldPrice) || 25;
                 else if (accType.includes('ব্যবহৃত')) currentRewardVal = parseFloat(platObj.usedPrice) || 15;
-                else currentRewardVal = parseFloat(platObj.newPrice) || 10;
+                else currentRewardVal = parseFloat(platObj.autoPrice) || 10;
 
                 let twoFaInfo = t.twoFactorCode ? `<br><small style="color:var(--warning);">2FA: ${t.twoFactorCode}</small>` : '';
 
@@ -810,20 +908,22 @@
                 
                 if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
                     platforms = [
-                        { key: 'gmail', name: 'Gmail সেল করুন', icon: 'fab fa-google', color: '#dc2626', enable: true, newPrice: 10, oldPrice: 25, usedPrice: 15, newLimit: 'Unlimited', oldLimit: 'Unlimited', usedLimit: 'Unlimited', enableNew: true, enableOld: true, enableUsed: true },
-                        { key: 'facebook', name: 'Facebook অ্যাকাউন্ট সেল', icon: 'fab fa-facebook', color: '#2563eb', enable: true, newPrice: 10, oldPrice: 25, usedPrice: 15, newLimit: 'Unlimited', oldLimit: 'Unlimited', usedLimit: 'Unlimited', enableNew: true, enableOld: true, enableUsed: true },
-                        { key: 'instagram', name: 'Instagram অ্যাকাউন্ট সেল', icon: 'fab fa-instagram', color: '#e1306c', enable: true, newPrice: 10, oldPrice: 25, usedPrice: 15, newLimit: 'Unlimited', oldLimit: 'Unlimited', usedLimit: 'Unlimited', enableNew: true, enableOld: true, enableUsed: true }
+                        { key: 'gmail', name: 'Gmail সেল করুন', icon: 'fab fa-google', color: '#dc2626', enableAuto: true, enableOld: true, enableUsed: true, autoPrice: 10, oldPrice: 25, usedPrice: 15, autoLimit: 'Unlimited', oldLimit: 'Unlimited', usedLimit: 'Unlimited' },
+                        { key: 'facebook', name: 'Facebook অ্যাকাউন্ট সেল', icon: 'fab fa-facebook', color: '#2563eb', enableAuto: true, enableOld: true, enableUsed: true, autoPrice: 10, oldPrice: 25, usedPrice: 15, autoLimit: 'Unlimited', oldLimit: 'Unlimited', usedLimit: 'Unlimited' },
+                        { key: 'instagram', name: 'Instagram অ্যাকাউন্ট সেল', icon: 'fab fa-instagram', color: '#e1306c', enableAuto: true, enableOld: true, enableUsed: true, autoPrice: 10, oldPrice: 25, usedPrice: 15, autoLimit: 'Unlimited', oldLimit: 'Unlimited', usedLimit: 'Unlimited' }
                     ];
                     db.ref('config/customPlatforms').set(platforms);
                 }
 
                 currentLoadedPlatforms = platforms;
 
-                const configContainer = document.getElementById('dynamicPlatformsConfigContainer');
+                const autoConfigContainer = document.getElementById('autoCreatePlatformsConfigContainer');
+                const manualConfigContainer = document.getElementById('dynamicPlatformsConfigContainer');
                 const menuContainer = document.getElementById('dynamicAdminMenuContainer');
                 const pagesContainer = document.getElementById('dynamicTaskPagesContainer');
 
-                configContainer.innerHTML = '';
+                autoConfigContainer.innerHTML = '';
+                manualConfigContainer.innerHTML = '';
                 menuContainer.innerHTML = '';
                 pagesContainer.innerHTML = '';
 
@@ -837,44 +937,58 @@
                         else fixedIcon = 'fas fa-globe';
                     }
 
-                    configContainer.innerHTML += `
+                    let isAutoChecked = p.enableAuto !== false ? 'checked' : '';
+                    let isOldChecked = p.enableOld !== false ? 'checked' : '';
+                    let isUsedChecked = p.enableUsed !== false ? 'checked' : '';
+
+                    autoConfigContainer.innerHTML += `
                         <div class="platform-config-box" data-key="${p.key}">
                             <div class="platform-title">
                                 <span><i class="${fixedIcon}" style="color:${p.color || '#6366f1'};"></i> ${p.name} (${p.key})</span>
-                                <div style="display:flex; align-items:center; gap:10px;">
-                                    <label style="display:flex; align-items:center; gap:5px; font-size:0.85rem; cursor:pointer; font-weight:normal;"><input type="checkbox" class="plat-en" ${p.enable !== false ? 'checked' : ''} style="width:15px; height:15px;"> Active</label>
-                                    <button class="btn btn-sm btn-d" onclick="deletePlatform('${p.key}')"><i class="fas fa-trash"></i></button>
-                                </div>
+                                <button class="btn btn-sm btn-d" onclick="deletePlatform('${p.key}')"><i class="fas fa-trash"></i></button>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group" style="margin-bottom: 8px;"><label style="font-size:0.75rem;">Display Name</label><input type="text" class="plat-name" value="${p.name}"></div>
-                                <div class="form-group" style="margin-bottom: 8px;"><label style="font-size:0.75rem;">Icon (FA class)</label><input type="text" class="plat-icon" value="${fixedIcon}"></div>
+                            <div style="font-size:0.8rem; font-weight:600; color:var(--text-light); margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                                <input type="checkbox" class="plat-auto-active" ${isAutoChecked} style="width:16px; height:16px;"> অটো মোড অন রাখুন
                             </div>
-                            <div style="font-size:0.8rem; font-weight:600; color:var(--text-light); margin-bottom:5px;">ক্যাটাগরি, প্রাইস, লিমিট ও স্ট্যাটাস:</div>
+                            <div style="font-size:0.8rem; font-weight:600; color:var(--text-light); margin-bottom:5px;">অটো জেনারেট প্রাইস ও লিমিট:</div>
+                            <div class="sub-category-row" style="grid-template-columns: 1.5fr 1fr 1fr;">
+                                <div><strong style="font-size:0.85rem;">অটো জেনারেট (Auto)</strong></div>
+                                <div><input type="number" class="plat-auto-p" value="${p.autoPrice ?? 10}"></div>
+                                <div><input type="text" class="plat-auto-l" value="${p.autoLimit || 'Unlimited'}"></div>
+                            </div>
+                        </div>
+                    `;
+
+                    manualConfigContainer.innerHTML += `
+                        <div class="platform-config-box" data-key="${p.key}">
+                            <div class="platform-title">
+                                <span><i class="${fixedIcon}" style="color:${p.color || '#6366f1'};"></i> ${p.name} (${p.key})</span>
+                                <button class="btn btn-sm btn-d" onclick="deletePlatform('${p.key}')"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <div style="font-size:0.8rem; font-weight:600; color:var(--text-light); margin-bottom:5px;">ম্যানুয়াল ক্যাটাগরি, প্রাইস ও লিমিট:</div>
                             
-                            <div class="sub-category-row">
-                                <div><strong style="font-size:0.85rem;">নতুন অ্যাকাউন্ট</strong></div>
-                                <div><input type="number" class="plat-new-p" value="${p.newPrice ?? 10}"></div>
-                                <div><input type="text" class="plat-new-l" value="${p.newLimit || 'Unlimited'}"></div>
-                                <div style="text-align:center; font-size:0.8rem;"><input type="checkbox" class="plat-en-new" ${p.enableNew !== false ? 'checked' : ''} style="width:15px; height:15px; vertical-align:middle;"> অন</div>
+                            <div style="margin-bottom: 8px; background: #fff; padding: 8px 10px; border-radius: 6px; border: 1px solid #e5e7eb; display:flex; align-items:center; gap:8px;">
+                                <input type="checkbox" class="plat-old-active" ${isOldChecked} style="width:16px; height:16px;"> <strong>পুরাতন অ্যাকাউন্ট অন রাখুন</strong>
                             </div>
-                            <div class="sub-category-row">
+                            <div class="sub-category-row" style="grid-template-columns: 1.5fr 1fr 1fr;">
                                 <div><strong style="font-size:0.85rem;">পুরাতন অ্যাকাউন্ট</strong></div>
                                 <div><input type="number" class="plat-old-p" value="${p.oldPrice ?? 25}"></div>
                                 <div><input type="text" class="plat-old-l" value="${p.oldLimit || 'Unlimited'}"></div>
-                                <div style="text-align:center; font-size:0.8rem;"><input type="checkbox" class="plat-en-old" ${p.enableOld !== false ? 'checked' : ''} style="width:15px; height:15px; vertical-align:middle;"> অন</div>
                             </div>
-                            <div class="sub-category-row">
+
+                            <div style="margin: 8px 0 8px 0; background: #fff; padding: 8px 10px; border-radius: 6px; border: 1px solid #e5e7eb; display:flex; align-items:center; gap:8px;">
+                                <input type="checkbox" class="plat-used-active" ${isUsedChecked} style="width:16px; height:16px;"> <strong>ব্যবহৃত অ্যাকাউন্ট অন রাখুন</strong>
+                            </div>
+                            <div class="sub-category-row" style="grid-template-columns: 1.5fr 1fr 1fr;">
                                 <div><strong style="font-size:0.85rem;">ব্যবহৃত অ্যাকাউন্ট</strong></div>
                                 <div><input type="number" class="plat-used-p" value="${p.usedPrice ?? 15}"></div>
                                 <div><input type="text" class="plat-used-l" value="${p.usedLimit || 'Unlimited'}"></div>
-                                <div style="text-align:center; font-size:0.8rem;"><input type="checkbox" class="plat-en-used" ${p.enableUsed !== false ? 'checked' : ''} style="width:15px; height:15px; vertical-align:middle;"> অন</div>
                             </div>
                         </div>
                     `;
 
                     menuContainer.innerHTML += `
-                        <div class="menu-item" onclick="nav('${p.key}-tasks', this)"><i class="${fixedIcon}" style="color:${p.color || '#6366f1'};"></i> ${p.name}</div>
+                        <div class="menu-item" onclick="nav('${p.key}-tasks', this)"><i class="${fixedIcon}" style="color:${p.color || '#6366f1'};"></i> ${p.name} Submissions</div>
                     `;
 
                     pagesContainer.innerHTML += `
@@ -913,34 +1027,63 @@
             });
         }
 
+        function saveAutoCreatePricingSettings() {
+            const boxes = document.querySelectorAll('#auto-create-pricing .platform-config-box');
+            savePricingBoxes(boxes, 'অটো ক্রিয়েট মেথড সেটিংস সফলভাবে সেভ হয়েছে!');
+        }
+
         function savePricingSettings() {
-            const boxes = document.querySelectorAll('.platform-config-box');
+            const boxes = document.querySelectorAll('#platform-pricing .platform-config-box');
+            savePricingBoxes(boxes, 'ম্যানুয়াল ওয়ার্ক মেথড সেটিংস সফলভাবে সেভ হয়েছে!');
+        }
+
+        function savePricingBoxes(boxes, successMsg) {
             let updatedPlatforms = [];
 
             boxes.forEach(box => {
                 let key = box.getAttribute('data-key');
                 let oldObj = currentLoadedPlatforms.find(p => p.key === key) || {};
 
-                updatedPlatforms.push({
-                    key: key,
-                    name: box.querySelector('.plat-name').value || key,
-                    icon: box.querySelector('.plat-icon').value || oldObj.icon || 'fas fa-wallet',
-                    color: oldObj.color || '#6366f1',
-                    enable: box.querySelector('.plat-en').checked,
-                    newPrice: parseFloat(box.querySelector('.plat-new-p').value) || 0,
-                    oldPrice: parseFloat(box.querySelector('.plat-old-p').value) || 0,
-                    usedPrice: parseFloat(box.querySelector('.plat-used-p').value) || 0,
-                    newLimit: box.querySelector('.plat-new-l').value || 'Unlimited',
-                    oldLimit: box.querySelector('.plat-old-l').value || 'Unlimited',
-                    usedLimit: box.querySelector('.plat-used-l').value || 'Unlimited',
-                    enableNew: box.querySelector('.plat-en-new').checked,
-                    enableOld: box.querySelector('.plat-en-old').checked,
-                    enableUsed: box.querySelector('.plat-en-used').checked
-                });
+                let enableAutoVal = box.querySelector('.plat-auto-active') ? box.querySelector('.plat-auto-active').checked : (oldObj.enableAuto ?? true);
+                let enableOldVal = box.querySelector('.plat-old-active') ? box.querySelector('.plat-old-active').checked : (oldObj.enableOld ?? true);
+                let enableUsedVal = box.querySelector('.plat-used-active') ? box.querySelector('.plat-used-active').checked : (oldObj.enableUsed ?? true);
+
+                let existingPlat = updatedPlatforms.find(p => p.key === key);
+                if (existingPlat) {
+                    existingPlat.enableAuto = enableAutoVal;
+                    existingPlat.enableOld = enableOldVal;
+                    existingPlat.enableUsed = enableUsedVal;
+                    if(box.querySelector('.plat-auto-p')) {
+                        existingPlat.autoPrice = parseFloat(box.querySelector('.plat-auto-p')?.value) || oldObj.autoPrice || 10;
+                        existingPlat.autoLimit = box.querySelector('.plat-auto-l')?.value || oldObj.autoLimit || 'Unlimited';
+                    }
+                    if(box.querySelector('.plat-old-p')) {
+                        existingPlat.oldPrice = parseFloat(box.querySelector('.plat-old-p')?.value) || oldObj.oldPrice || 25;
+                        existingPlat.oldLimit = box.querySelector('.plat-old-l')?.value || oldObj.oldLimit || 'Unlimited';
+                        existingPlat.usedPrice = parseFloat(box.querySelector('.plat-used-p')?.value) || oldObj.usedPrice || 15;
+                        existingPlat.usedLimit = box.querySelector('.plat-used-l')?.value || oldObj.usedLimit || 'Unlimited';
+                    }
+                } else {
+                    updatedPlatforms.push({
+                        key: key,
+                        name: oldObj.name || key,
+                        icon: oldObj.icon || 'fas fa-wallet',
+                        color: oldObj.color || '#6366f1',
+                        enableAuto: enableAutoVal,
+                        enableOld: enableOldVal,
+                        enableUsed: enableUsedVal,
+                        autoPrice: parseFloat(box.querySelector('.plat-auto-p')?.value) || oldObj.autoPrice || 10,
+                        oldPrice: parseFloat(box.querySelector('.plat-old-p')?.value) || oldObj.oldPrice || 25,
+                        usedPrice: parseFloat(box.querySelector('.plat-used-p')?.value) || oldObj.usedPrice || 15,
+                        autoLimit: box.querySelector('.plat-auto-l')?.value || oldObj.autoLimit || 'Unlimited',
+                        oldLimit: box.querySelector('.plat-old-l')?.value || oldObj.oldLimit || 'Unlimited',
+                        usedLimit: box.querySelector('.plat-used-l')?.value || oldObj.usedLimit || 'Unlimited'
+                    });
+                }
             });
 
             db.ref('config/customPlatforms').set(updatedPlatforms, () => {
-                alert('প্রাইসিং ও প্ল্যাটফর্ম কন্ট্রোল সফলভাবে সেভ হয়েছে!');
+                alert(successMsg);
             });
         }
 
